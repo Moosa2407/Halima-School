@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>الكسور المتشابهة: جمع وطرحها — 30 سؤال / 180 ثانية</title>
+  <style>
+    :root{
+      --bg:#f8f6fb; --ink:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --panel:#fff; --panel2:#faf5ff; --accent:#7c3aed; --ok:#16a34a; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:auto;padding:20px}
+    header{text-align:center}
+    h1{margin:8px 0 4px}
+    .subtitle{color:var(--muted)}
+    .status{display:flex;justify-content:space-between;gap:10px;background:var(--panel2);
+            border:1px solid var(--border);padding:10px;border-radius:12px;margin-top:12px}
+    .chip{font-weight:700;padding:8px 12px;border-radius:10px;background:#e0e7ff}
+    .chip.time{background:#ffe4e6}
+    .card{margin-top:16px;background:var(--panel);border:1px solid var(--border);
+          border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+    .qbar{background:#ede9fe;border:1px solid #ddd6fe;border-radius:10px;padding:14px;margin-bottom:12px}
+    .qbar h2{margin:0;text-align:center;font-size:clamp(18px,3.6vw,26px)}
+    .work{display:flex;justify-content:center;gap:18px;align-items:center;margin-top:8px;flex-wrap:wrap}
+    .frac{display:inline-grid;grid-template-rows:auto auto;place-items:center;margin:0 6px}
+    .frac .top{border-bottom:2px solid #111;padding:0 6px;font-weight:700}
+    .frac .bot{padding:0 6px;font-weight:700}
+    .choices{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+    .choice{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 16px;cursor:pointer;min-width:150px;font-weight:700}
+    .choice:hover{filter:brightness(.98)}
+    .choice.correct{background:#ecfdf5;border-color:#bbf7d0}
+    .choice.wrong{background:#fef2f2;border-color:#fecaca}
+    .actions{display:flex;justify-content:center;margin-top:10px}
+    .btn{border:1px solid var(--border);background:#eef2ff;border-radius:10px;padding:10px 16px;cursor:pointer}
+    .note{color:var(--muted);text-align:center;margin-top:6px}
+    footer{margin-top:18px;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>الكسور المتشابهة: جمع وطرحها</h1>
+      <p class="subtitle">تدريب على جمع وطرح الكسور ذات المقامات المتشابهة وإخراج النتيجة في أبسط صورة. لديك 180 ثانية للإجابة على 30 سؤالًا. إذا أخطأت فستعود للصفحة الرئيسية.</p>
+    </header>
+
+    <div class="status">
+      <div class="chip">السؤال: <span id="counter">0 / 30</span></div>
+      <div class="chip">النقاط: <span id="score">0</span></div>
+      <div class="chip time">⏰ الوقت: <span id="time">180</span> ثانية</div>
+    </div>
+
+    <section class="card">
+      <div class="qbar"><h2 id="question">اضغط/ي ابدأ للانطلاق!</h2></div>
+      <div class="work" id="workArea"></div>
+      <p class="note" id="hint"></p>
+      <div class="choices" id="choices"></div>
+      <div class="actions"><button class="btn" id="startBtn">ابدأ ▶︎</button></div>
+    </section>
+
+    <footer id="done" hidden>أحسنت! اكتملت المهمة 🎉</footer>
+  </div>
+
+<script>
+/* إعدادات عامة */
+const TIME_LIMIT = 180;
+const TOTAL_Q    = 30;
+
+/* عناصر الواجهة */
+const counterEl = document.getElementById('counter');
+const scoreEl   = document.getElementById('score');
+const timeEl    = document.getElementById('time');
+const qEl       = document.getElementById('question');
+const workEl    = document.getElementById('workArea');
+const hintEl    = document.getElementById('hint');
+const choicesEl = document.getElementById('choices');
+const startBtn  = document.getElementById('startBtn');
+const doneEl    = document.getElementById('done');
+
+/* أدوات مساعدة */
+const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a => a.sort(()=>Math.random()-0.5);
+const gcd = (a,b)=> b?gcd(b,a%b):Math.abs(a);
+function simp(n,d){ const g=gcd(n,d); return [n/g, d/g]; }
+function fracHTML(n,d){ return `<span class="frac"><span class="top">${n}</span><span class="bot">${d}</span></span>`; }
+function renderOp(op,lhs1,lhs2,den){ // lhs1, lhs2 numerators
+  const a = fracHTML(lhs1,den);
+  const b = fracHTML(lhs2,den);
+  return `${a} <strong>${op}</strong> ${b}`;
+}
+function optsFrom(fr){ // fr is [n,d] simplest
+  const [n,d]=fr;
+  const wrong1 = simp(n+1,d)[0]+'/'+simp(n+1,d)[1];
+  const wrong2 = (n>1? simp(n-1,d) : [n+2,d]).join('/');
+  return shuffle([`${n}/${d}`, wrong1, wrong2]);
+}
+
+/* مولدات الأسئلة */
+// 1) جمع بسيط سهل
+function q_add_easy(){
+  const den = [2,3,4,5,6,8,10,12][rnd(0,7)];
+  const a=rnd(1,Math.floor(den/3));
+  const b=rnd(1,Math.floor(den/3));
+  const [n,d]=simp(a+b,den);
+  return {
+    text:'اجمع/ي و اكتب/ي الناتج في أبسط صورة:',
+    work: renderOp('+',a,b,den),
+    hint:'اجمع البسطين واحتفظ بالمقام نفسه، ثم بسّط.',
+    options: optsFrom([n,d]),
+    answer: `${n}/${d}`
+  };
+}
+// 2) طرح بسيط سهل (ناتج موجب)
+function q_sub_easy(){
+  const den = [4,5,6,8,10,12][rnd(0,5)];
+  const a=rnd(2,Math.floor(den/2));
+  const b=rnd(1,a-1);
+  const [n,d]=simp(a-b,den);
+  return {
+    text:'اطرح/ي و بسّط/ي:',
+    work: renderOp('−',a,b,den),
+    hint:'اطرح البسطين مع ثبات المقام، ثم بسّط.',
+    options: optsFrom([n,d]),
+    answer: `${n}/${d}`
+  };
+}
+// 3) جمع يؤدي إلى عدد كسري (تبسيط إلى كسر غير فعلي/فعلي مبسط)
+function q_add_bigger(){
+  const den = [6,8,9,10,12][rnd(0,4)];
+  const a=rnd(Math.floor(den/3), Math.floor(den/2));
+  const b=rnd(Math.floor(den/3), Math.floor(den/2));
+  const [n,d]=simp(a+b,den);
+  return {
+    text:'اجمع/ي وابسط/ي الناتج إلى أبسط صورة:',
+    work: renderOp('+',a,b,den),
+    hint:'قد تحتاج/ين إلى التبسيط فقط (المقام ثابت).',
+    options: optsFrom([n,d]),
+    answer: `${n}/${d}`
+  };
+}
+// 4) طرح أصعب (أرقام أكبر)
+function q_sub_hard(){
+  const den = [6,8,10,12][rnd(0,3)];
+  const a=rnd(Math.ceil(den/2), den-1);
+  const b=rnd(1, Math.ceil(den/2));
+  if(a<=b) return q_sub_hard(); // تأكد موجب
+  const [n,d]=simp(a-b,den);
+  return {
+    text:'اطرح/ي وابسّط/ي:',
+    work: renderOp('−',a,b,den),
+    hint:'اطرح البسطين ثم بسّط الكسر.',
+    options: optsFrom([n,d]),
+    answer: `${n}/${d}`
+  };
+}
+// 5) إكمال البسط المفقود في جمع
+function q_fill_add(){
+  const den = [6,8,10,12][rnd(0,3)];
+  const a=rnd(1,Math.floor(den/2));
+  const target=rnd(1,den-1);
+  const b = (target - a); // a + b = target
+  if(b<=0 || b>=den) return q_fill_add();
+  const [n,d]=simp(target,den);
+  const work = `${fracHTML(a,den)} <strong>+</strong> ${fracHTML('؟',den)} = ${fracHTML(n,d)}`;
+  const opts = shuffle([b, b+1, Math.max(1,b-1)]).map(x=>String(x));
+  return {
+    text:'أكمِل/ي البسط المفقود ليكون المجموع كما هو مبسّط:',
+    work, hint:'حوّل الناتج المبسّط إلى مقام أصلي ثم استنتج البسط المفقود.',
+    options: opts, answer: String(b)
+  };
+}
+// 6) إكمال البسط في طرح
+function q_fill_sub(){
+  const den = [6,8,10,12][rnd(0,3)];
+  const a=rnd(2,den-1);
+  const target=rnd(1,a-1);
+  const b = (a - target);
+  const [n,d]=simp(target,den);
+  const work = `${fracHTML(a,den)} <strong>−</strong> ${fracHTML('؟',den)} = ${fracHTML(n,d)}`;
+  const opts = shuffle([b, b+1, Math.max(1,b-1)]).map(String);
+  return {
+    text:'أكمِل/ي البسط المفقود في الطرح (النتيجة مبسّطة):',
+    work, hint:'أعيدي النتيجة إلى المقام الأصلي ثم استخرجي البسط المفقود.',
+    options: opts, answer: String(b)
+  };
+}
+// 7) مسألة لفظية قصيرة (بيتزا/شوكولاتة) — جمع
+function q_word_add(){
+  const den = [4,6,8,10][rnd(0,3)];
+  const a=rnd(1,Math.floor(den/2));
+  const b=rnd(1,Math.floor(den/2));
+  const [n,d]=simp(a+b,den);
+  const item = ['بيتزا','لوح شوكولاتة','كيكة'][rnd(0,2)];
+  return {
+    text:`أكل علي ${a}/${den} من ${item}، وأكلت أروى ${b}/${den} منها. كم أكلا معًا؟ (أبسط صورة)`,
+    work:'', hint:'مقامات متساوية → اجمع البسطين.',
+    options: optsFrom([n,d]),
+    answer: `${n}/${d}`
+  };
+}
+// 8) مسألة لفظية — طرح
+function q_word_sub(){
+  const den = [4,6,8,10,12][rnd(0,4)];
+  const a=rnd(2,den-1);
+  const b=rnd(1,a-1);
+  const [n,d]=simp(a-b,den);
+  const item = ['عصير','واجب','طريق'][rnd(0,2)];
+  return {
+    text:`استهلكت سارة ${a}/${den} من ${item}، ثم أعادت ${b}/${den}. كم المتبقي/التغيير؟ (أبسط صورة)`,
+    work:'', hint:'اطرح البسطين مع ثبات المقام.',
+    options: optsFrom([n,d]),
+    answer: `${n}/${d}`
+  };
+}
+
+/* بناء بنك أسئلة مرتّب سهل→متوسط→صعب وبدون تكرار نص السؤال */
+function buildQuestions(){
+  const out=[], used=new Set();
+  const add = (gen, n)=>{ for(let i=0;i<n;i++){ let t=0,q;
+    do{ q=gen(); t++; }while(used.has(q.text+q.work) && t<50);
+    if(!used.has(q.text+q.work)){ used.add(q.text+q.work); out.push(q); }
+  }};
+  // سهل (12)
+  add(q_add_easy, 6);
+  add(q_sub_easy, 6);
+  // متوسط (12)
+  add(q_add_bigger, 5);
+  add(q_sub_hard , 5);
+  add(q_word_add , 2);
+  // صعب (6)
+  add(q_fill_add , 3);
+  add(q_fill_sub , 2);
+  add(q_word_sub , 1);
+
+  // لو نقص نكمل عشوائيًا من مولدات متنوعة
+  const gens=[q_add_easy,q_sub_easy,q_add_bigger,q_sub_hard,q_fill_add,q_fill_sub,q_word_add,q_word_sub];
+  let guard=1000;
+  while(out.length<TOTAL_Q && guard--){
+    const q = gens[rnd(0,gens.length-1)]();
+    if(!used.has(q.text+q.work)){ used.add(q.text+q.work); out.push(q); }
+  }
+  return out.slice(0,TOTAL_Q);
+}
+
+/* تشغيل اللعبة */
+let QUESTIONS = [];
+let idx = 0, score = 0, timeLeft = TIME_LIMIT, timer = null, running=false;
+
+function render(q){
+  counterEl.textContent = `${idx+1} / ${TOTAL_Q}`;
+  qEl.textContent       = q.text;
+  workEl.innerHTML      = q.work || '';
+  hintEl.textContent    = q.hint || '';
+  choicesEl.innerHTML   = '';
+  q.options.forEach(opt=>{
+    const b = document.createElement('button');
+    b.className = 'choice';
+    // صيغة الاختيارات: كسور "n/d" أو أعداد (لبسط مفقود)
+    if(opt.includes('/')){
+      const [n,d]=opt.split('/').map(Number);
+      b.innerHTML = fracHTML(n,d);
+      b.dataset.val = opt;
+    }else{
+      b.textContent = opt;
+      b.dataset.val = opt;
+    }
+    b.onclick = ()=> choose(b.dataset.val, q.answer, b);
+    choicesEl.appendChild(b);
+  });
+}
+
+function choose(sel, ans, btn){
+  if(String(sel)===String(ans)){
+    btn.classList.add('correct');
+    score++; scoreEl.textContent = score;
+    setTimeout(()=>{
+      idx++;
+      if(idx>=TOTAL_Q){ win(); }
+      else render(QUESTIONS[idx]);
+    },140);
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(()=>{ window.location.href='index.html'; },140);
+  }
+}
+
+function start(){
+  if(running) return;
+  running = true; doneEl.hidden=true;
+  QUESTIONS = buildQuestions();
+  idx=0; score=0; scoreEl.textContent=score;
+  timeLeft = TIME_LIMIT; timeEl.textContent=timeLeft;
+  render(QUESTIONS[idx]);
+  startBtn.disabled = true; startBtn.textContent = 'جاري…';
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--; timeEl.textContent=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      window.location.href = 'index.html';
+    }
+  },1000);
+}
+
+function win(){
+  clearInterval(timer);
+  qEl.textContent='اكتمل الاختبار ✅';
+  workEl.innerHTML=''; hintEl.textContent='';
+  choicesEl.innerHTML='';
+  doneEl.hidden=false; startBtn.disabled=false; startBtn.textContent='إعادة';
+  running=false;
+}
+
+document.getElementById('startBtn').addEventListener('click', start);
+</script>
+</body>
+</html>

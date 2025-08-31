@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>خطة حل مسألة: إنشاء جدول — 30 سؤال / 180 ثانية</title>
+  <style>
+    :root{
+      --bg:#f8f6fb; --ink:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --panel:#fff; --panel2:#faf5ff; --accent:#7c3aed; --ok:#16a34a; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:auto;padding:20px}
+    header{text-align:center}
+    h1{margin:8px 0 4px}
+    .subtitle{color:var(--muted)}
+    .status{display:flex;justify-content:space-between;gap:10px;background:var(--panel2);
+            border:1px solid var(--border);padding:10px;border-radius:12px;margin-top:12px}
+    .chip{font-weight:700;padding:8px 12px;border-radius:10px;background:#e0e7ff}
+    .chip.time{background:#ffe4e6}
+    .card{margin-top:16px;background:var(--panel);border:1px solid var(--border);
+          border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+    .qbar{background:#ede9fe;border:1px solid #ddd6fe;border-radius:10px;padding:14px;margin-bottom:12px}
+    .qbar h2{margin:0;text-align:center;font-size:clamp(18px,3.6vw,26px)}
+    .table{width:100%;border-collapse:collapse;margin:8px 0;border-radius:10px;overflow:hidden}
+    .table th,.table td{border:1px solid var(--border);padding:8px 10px;text-align:center}
+    .table thead{background:#f3f4f6}
+    .note{color:var(--muted);text-align:center;margin-top:6px}
+    .choices{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+    button.choice{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 16px;cursor:pointer;min-width:160px;font-weight:700}
+    button.choice:hover{filter:brightness(.98)}
+    .choice.correct{background:#ecfdf5;border-color:#bbf7d0}
+    .choice.wrong{background:#fef2f2;border-color:#fecaca}
+    .actions{display:flex;justify-content:center;margin-top:10px}
+    .btn{border:1px solid var(--border);background:#eef2ff;border-radius:10px;padding:10px 16px;cursor:pointer}
+    footer{margin-top:18px;text-align:center;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px;margin-top:8px}
+    .cell{background:#fafafa;border:1px dashed #cbd5e1;padding:8px;border-radius:8px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>خطة حل مسألة: إنشاء جدول</h1>
+      <p class="subtitle">نرتّب المعلومات في جدول، نكتشف النمط، ثم نجيب. لديك 180 ثانية للإجابة على 30 سؤالًا. إذا أخطأت فستعود للصفحة الرئيسية.</p>
+    </header>
+
+    <div class="status">
+      <div class="chip">السؤال: <span id="counter">0 / 30</span></div>
+      <div class="chip">النقاط: <span id="score">0</span></div>
+      <div class="chip time">⏰ الوقت: <span id="time">180</span> ثانية</div>
+    </div>
+
+    <section class="card">
+      <div class="qbar"><h2 id="question">اضغطي ابدأ للانطلاق!</h2></div>
+
+      <!-- جدول/شبكة تعرض تنظيم المعطيات -->
+      <div id="workArea"></div>
+      <p class="note" id="hint"></p>
+
+      <div class="choices" id="choices"></div>
+      <div class="actions"><button class="btn" id="startBtn">ابدأ ▶︎</button></div>
+    </section>
+
+    <footer id="done" hidden>أحسنتِ! اكتملت المهمة 🎉</footer>
+  </div>
+
+<script>
+/* إعدادات عامة */
+const TIME_LIMIT = 180;        // 180 ثانية
+const TOTAL_Q    = 30;         // 30 سؤال
+
+/* عناصر الواجهة */
+const counterEl = document.getElementById('counter');
+const scoreEl   = document.getElementById('score');
+const timeEl    = document.getElementById('time');
+const qEl       = document.getElementById('question');
+const workEl    = document.getElementById('workArea');
+const hintEl    = document.getElementById('hint');
+const choicesEl = document.getElementById('choices');
+const startBtn  = document.getElementById('startBtn');
+const doneEl    = document.getElementById('done');
+
+/* أدوات مساعدة */
+const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a => a.sort(()=>Math.random()-0.5);
+const sum = arr => arr.reduce((x,y)=>x+y,0);
+
+/* مولدات أسئلة (من السهل للصعب) */
+function q_arith_seq() {
+  const a1 = rnd(2,9), d = rnd(2,7), n = rnd(4,7);
+  const seq = Array.from({length:n}, (_,i)=>a1 + i*d);
+  const askIndex = n;
+  const ans = a1 + n*d;
+  const opts = [ans, ans+d, ans-d].map(String);
+  const tbl = makeTable(['الخانة', ...seq.map((_,i)=>i+1)], ['القيمة', ...seq]);
+  return {
+    text:`أكملي النمط (يزيد بمقدار ثابت). ما قيمة الخانة ${askIndex+1}؟`,
+    table:tbl, hint:`لاحظي الزيادة الثابتة: +${d}`,
+    options:opts, answer:String(ans)
+  };
+}
+
+function q_mult_seq() {
+  const a1 = rnd(1,4)*2; const r = [2,3][rnd(0,1)];
+  const n = rnd(3,5);
+  const seq = Array.from({length:n},(_,i)=>a1*Math.pow(r,i));
+  const ans = seq[n-1]*r;
+  const opts = [ans, seq[n-1], ans*r].map(String);
+  const tbl = makeTable(['الخانة',...seq.map((_,i)=>i+1)], ['القيمة',...seq]);
+  return {
+    text:`متتابعة تضاعف (${r}×). ما العدد التالي؟`,
+    table:tbl, hint:`كل مرة نضرب في ${r}`,
+    options:opts, answer:String(ans)
+  };
+}
+
+function q_week_saving(){
+  const first = rnd(5,15)*1; const step = rnd(3,10);
+  const weeks = 5;
+  const vals = Array.from({length:weeks},(_,i)=>first + i*step);
+  const ask = rnd(3,5);
+  const ans = first + (ask-1)*step;
+  const rows = [['الأسبوع',...Array.from({length:weeks},(_,i)=>i+1)],
+                ['المبلغ (د.ب)',...vals]];
+  const tbl = htmlTable(rows);
+  const opts = [ans, ans+step, ans-step].map(String);
+  return {
+    text:`ادّخر طالب مبالغ بنمط ثابت. كم ادّخر في الأسبوع ${ask}؟`,
+    table:tbl, hint:`الزيادة ثابتة: +${step} د.ب كل أسبوع`,
+    options:opts, answer:String(ans)
+  };
+}
+
+function q_pages_day(){
+  const start= rnd(2,6), add=rnd(2,6), days=5;
+  const vals = Array.from({length:days},(_,i)=>start+i*add);
+  const ask = days+1, ans = start+(ask-1)*add;
+  const tbl = makeTable(['اليوم',...Array.from({length:days},(_,i)=>i+1)],
+                        ['الصفحات',...vals]);
+  const opts = [ans,ans+add,ans-add].map(String);
+  return {
+    text:`قرأ سالم صفحات بنمط ثابت. كم سيقرأ في اليوم ${ask}؟`,
+    table:tbl, hint:`نضيف ${add} صفحة كل يوم`,
+    options:opts, answer:String(ans)
+  };
+}
+
+function q_two_steps(){
+  const a=rnd(2,5), b=rnd(6,10);
+  const start=rnd(3,9), len=6;
+  const seq=[start];
+  for(let i=1;i<len;i++){
+    seq.push(seq[i-1] + (i%2? b:a));
+  }
+  const ans = seq[len-1] + (len%2? b:a);
+  const tbl = makeTable(['الخانة',...Array.from({length:len},(_,i)=>i+1)],
+                        ['القيمة',...seq]);
+  const opts = [ans, ans+(a+b), ans-a].map(String);
+  return {
+    text:`نمط بخطوتين (+${a} ثم +${b} بالتناوب). ما العدد التالي؟`,
+    table:tbl, hint:`يتكرر: +${a} ثم +${b}`,
+    options:opts, answer:String(ans)
+  };
+}
+
+function q_total_after_n(){
+  const a1=rnd(2,6), d=rnd(2,6), n=rnd(4,6);
+  const seq = Array.from({length:n},(_,i)=>a1+i*d);
+  const target=rnd(n+1,n+3);
+  const ans = (a1+ (target-1)*d + a1) * target / 2;
+  const shown = Array.from({length:n},(_,i)=>a1+i*d);
+  const tbl = makeTable(['الخانة',...Array.from({length:n},(_,i)=>i+1)],
+                        ['القيمة',...shown]) +
+              `<div class="note">كم يكون مجموع القيم حتى الخانة ${target}؟</div>`;
+  const opts = [Math.round(ans), Math.round(ans + d*target), Math.round(ans - d*target)].map(String);
+  return {
+    text:`متتابعة تزيد بمقدار ثابت +${d}. احسبي مجموع القيم حتى الخانة ${target}.`,
+    table:tbl, hint:`كوّني جدولًا ثم اجمعي القيم`,
+    options:opts, answer:String(Math.round(ans))
+  };
+}
+
+function q_fill_missing(){
+  const a1=rnd(3,9), d=rnd(2,6);
+  const seq = Array.from({length:6},(_,i)=>a1+i*d);
+  const miss = rnd(2,5);
+  const shown = seq.map((v,i)=> i===miss? '—' : v);
+  const tbl = makeTable(['الخانة',1,2,3,4,5,6], ['القيمة',...shown]);
+  const opts = [seq[miss], seq[miss]+d, seq[miss]-d].map(String);
+  return {
+    text:`أكملي القيمة المفقودة في الجدول.`,
+    table:tbl, hint:`النمط يزيد +${d}`,
+    options:opts, answer:String(seq[miss])
+  };
+}
+
+function q_double_table(){
+  const speed=rnd(4,9)*10;
+  const h1=rnd(1,3), h2=h1+1, h3=h2+1;
+  const rows = [
+    ['الزمن (س)', h1, h2, h3],
+    ['المسافة (كم)', h1*speed, h2*speed, h3*speed]
+  ];
+  const ask = h3+1, ans = ask*speed;
+  const tbl = htmlTable(rows) + `<div class="note">ما المسافة المقطوعة في ${ask} ساعات؟</div>`;
+  const opts = [ans, ans-speed, ans+speed].map(String);
+  return {
+    text:`تحويل بيانات إلى جدول بنسبة ثابتة (سرعة = ${speed} كم/س).`,
+    table:tbl, hint:`المسافة = السرعة × الزمن`,
+    options:opts, answer:String(ans)
+  };
+}
+
+function q_find_step(){
+  const a1=rnd(2,8), d=rnd(2,9), n=5;
+  const seq = Array.from({length:n},(_,i)=>a1+i*d);
+  const ask=n+1, ans=a1+(ask-1)*d;
+  const tbl = makeTable(['الخانة',...Array.from({length:n},(_,i)=>i+1)],
+                        ['القيمة',...seq]);
+  const opts=[ans, ans+d, ans-d].map(String);
+  return {
+    text:`استنتجي مقدار الزيادة من الجدول ثم احسبي قيمة الخانة ${ask}.`,
+    table:tbl, hint:`الفرق بين كل قيمتين متتاليتين ثابت.`,
+    options:opts, answer:String(ans)
+  };
+}
+
+/* بناء 30 سؤال بدون تكرار وبترتيب صعوبة واضح: سهل → متوسط → صعب */
+function buildQuestions(){
+  const used = new Set();  // لمنع تكرار نص السؤال
+  const out  = [];
+
+  // أداة لإضافة أسئلة فريدة من مولّد معيّن بعدد محدد
+  function pushUnique(genFn, howMany, maxTriesPerQ = 60){
+    for(let need=howMany; need>0; ){
+      let tries = 0, q;
+      do {
+        q = genFn();
+        tries++;
+      } while (tries < maxTriesPerQ && used.has(q.text));
+      if (!used.has(q.text)){
+        used.add(q.text);
+        out.push(q);
+        need--;
+      } else {
+        // لو فشل التوليد الفريد مرات كثيرة، نخرج لتجنّب الحلقة
+        break;
+      }
+    }
+  }
+
+  // سهل (12)
+  pushUnique(q_pages_day, 6);
+  pushUnique(q_arith_seq, 6);
+
+  // متوسط (13)
+  pushUnique(q_find_step,   5);
+  pushUnique(q_week_saving, 5);
+  pushUnique(q_fill_missing,3);
+
+  // صعب (5)
+  pushUnique(q_mult_seq,      3);
+  pushUnique(q_double_table,  1);
+  pushUnique(q_two_steps,     1);
+  pushUnique(q_total_after_n, 1);
+
+  // إن نقص العدد لأي سبب، نكمّل مع الحفاظ على عدم التكرار
+  const gensInOrder = [
+    q_pages_day, q_arith_seq, q_find_step, q_week_saving,
+    q_fill_missing, q_mult_seq, q_double_table, q_two_steps, q_total_after_n
+  ];
+  let gi = 0, guard = 1000;
+  while (out.length < TOTAL_Q && guard-- > 0){
+    const q = gensInOrder[gi % gensInOrder.length]();
+    if (!used.has(q.text)){
+      used.add(q.text);
+      out.push(q);
+    }
+    gi++;
+  }
+
+  return out.slice(0, TOTAL_Q); // 30 بالضبط
+}
+
+/* إنشاء جدول HTML سريع */
+function makeTable(headersRow, dataRow){
+  return htmlTable([headersRow, dataRow]);
+}
+function htmlTable(rows){
+  let thead = '<thead><tr>'+ rows[0].map(c=>`<th>${c}</th>`).join('') +'</tr></thead>';
+  let body = rows.slice(1).map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join('');
+  return `<table class="table">${thead}<tbody>${body}</tbody></table>`;
+}
+
+/* تشغيل اللعبة */
+let QUESTIONS = [];
+let idx = 0, score = 0, timeLeft = TIME_LIMIT, timer = null, running=false;
+
+function render(q){
+  counterEl.textContent = `${idx+1} / ${TOTAL_Q}`;
+  qEl.textContent       = q.text;
+  workEl.innerHTML      = q.table || '';
+  hintEl.textContent    = q.hint || '';
+  choicesEl.innerHTML   = '';
+  q.options.forEach(opt=>{
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = opt;
+    b.onclick = ()=> choose(opt, q.answer, b);
+    choicesEl.appendChild(b);
+  });
+}
+
+function choose(sel, ans, btn){
+  if(String(sel)===String(ans)){
+    btn.classList.add('correct');
+    score++; scoreEl.textContent = score;
+    setTimeout(()=>{
+      idx++;
+      if(idx>=TOTAL_Q){ win(); }
+      else render(QUESTIONS[idx]);
+    },140);
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(()=>{ window.location.href='index.html'; },140);
+  }
+}
+
+function start(){
+  if(running) return;
+  running = true; doneEl.hidden=true;
+  QUESTIONS = buildQuestions();
+  idx=0; score=0; scoreEl.textContent=score;
+  timeLeft = TIME_LIMIT; timeEl.textContent=timeLeft;
+  render(QUESTIONS[idx]);
+  startBtn.disabled = true; startBtn.textContent = 'جاري…';
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--; timeEl.textContent=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      window.location.href = 'index.html';
+    }
+  },1000);
+}
+
+function win(){
+  clearInterval(timer);
+  qEl.textContent='اكتمل الاختبار ✅';
+  workEl.innerHTML=''; hintEl.textContent='';
+  choicesEl.innerHTML='';
+  doneEl.hidden=false; startBtn.disabled=false; startBtn.textContent='إعادة';
+  running=false;
+}
+
+document.getElementById('startBtn').addEventListener('click', start);
+</script>
+</body>
+</html>

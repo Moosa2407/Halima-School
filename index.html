@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>الألعاب التعليمية</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <!-- الشريط العلوي -->
+  <header class="top-bar">
+    <div class="top-bar-left">
+      <img class="logo" src="img/School.jpg" alt="School" loading="lazy" />
+      <img class="logo" src="https://upload.wikimedia.org/wikipedia/commons/3/31/Blogger.svg" alt="Logo" loading="lazy" />
+    </div>
+
+    <div class="search-box" role="search">
+      <input type="text" placeholder="بحث..." aria-label="بحث">
+      <button title="بحث" aria-label="بحث">🔍</button>
+    </div>
+
+    <nav class="top-links" aria-label="روابط علوية">
+      <a href="#">المزيد ▾</a>
+      <a href="#">إنشاء مدونة</a>
+      <a href="#">تسجيل الدخول</a>
+    </nav>
+  </header>
+
+  <!-- تخطيط الصفحة: عمود جانبي + محتوى -->
+  <div class="layout">
+
+    <!-- العمود الجانبي -->
+    <aside class="sidebar" aria-label="شريط جانبي">
+      <section class="widget categories">
+        <h3 class="title">أقسام المدونة</h3>
+        <ul>
+          <li><a href="#">الألعاب التعليمية</a></li>
+          <li><a href="#">الأنشطة التفاعلية والأدوات الرقمية</a></li>
+          <li><a href="#">مذكرات الصف السادس</a></li>
+          <li><a href="#">ملخصات الصف السادس</a></li>
+        </ul>
+      </section>
+
+      <section class="widget">
+        <h3 class="title">إجمالي مرات مشاهدة الصفحة</h3>
+        <div id="viewsCounter" class="digits" aria-live="polite"></div>
+      </section>
+
+      <section class="widget">
+        <h3 class="title">الأرشيف</h3>
+        <label class="sr-only" for="archiveSelect">اختيار شهر من الأرشيف</label>
+        <select id="archiveSelect" class="archive-select">
+          <option>الأرشيف</option>
+          <option>سبتمبر 2019</option>
+          <option>أكتوبر 2019</option>
+          <option>يناير 2020</option>
+        </select>
+      </section>
+    </aside>
+
+    <!-- المحتوى -->
+    <main class="content">
+
+      <!-- (1) جدول الضرب -->
+      <section class="intro">
+        <div class="hero-image">
+          <img src="img/Bayan.jpg" alt="Bayan"
+               loading="lazy"
+               srcset="img/Bayan-600.jpg 600w, img/Bayan-900.jpg 900w, img/Bayan.jpg 1400w"
+               sizes="(min-width: 992px) 850px, 100vw">
+        </div>
+
+        <h1>تحدي جدول الضرب</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>
+          <span class="red">تحدي</span>
+          <span class="blue">جدول الضرب</span> :
+          لعبة تعليمية تُذكِّر حقائق الضرب الأساسية بسرعة ودقة …
+        </p>
+        <p>
+          حاول الإجابة على أكبر قدر ممكن من الأسئلة بصورة صحيحة لتسجل اسمك في لوحة
+          <span class="red">"أفضل 20 متسابق"</span>
+        </p>
+        <p class="blue">تذكّر: لديك 180 ثانية فقط !!!</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="startGameClassic()">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>تحدي جدول الضرب</h2>
+
+          <div class="input-area">
+            <input type="text" id="playerNameClassic" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off" inputmode="text">
+            <button type="button" class="btn info-btn" onclick="alert('حاول أن تجيب على أكبر عدد من أسئلة الضرب خلال الوقت المحدد.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- (2) الضرب السريع -->
+      <section class="intro">
+        <h1>تحدّي الضرب السريع</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>
+          لعبة تعليمية تهدف إلى اختبار قدرتك على
+          <span class="blue">تذكّر حقائق الضرب</span>.
+          حاول الإجابة على أكبر قدر ممكن من الأسئلة بصورة صحيحة لتسجّل اسمك في لوحة
+          <span class="red">أفضل 50 متسابق</span>.
+        </p>
+        <p class="blue">تعليمات التحدّي:</p>
+        <ul class="bullets">
+          <li>إذا كان ناتج جملة الضرب الظاهرة <strong class="ok">صحيح ✓</strong> اضغط زرّ الصحيح.</li>
+          <li>إذا كان الناتج <strong class="bad">خطأ ✗</strong> اضغط زرّ الخطأ.</li>
+          <li>ينتهي التحدّي إذا أخطأت أو إذا انتهى الوقت قبل اختيار الإجابة الصحيحة.</li>
+        </ul>
+        <p><span class="red">ملاحظة:</span> <span class="blue">اكتب اسمك ثم اضغط زر "ابدأ اللعب" لبدء التحدّي</span></p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="startGameFast()">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>تحدّي الضرب السريع</h2>
+
+          <div class="input-area">
+            <input type="text" id="playerNameFast" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off" inputmode="text">
+            <button type="button" class="btn info-btn" onclick="alert('حاول أن تجيب على أكبر عدد من أسئلة الضرب خلال الوقت المحدد.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- =========================
+           دروس الملزمة
+      ========================= -->
+
+      <!-- 1) التمثيل بالأعمدة -->
+      <section class="intro">
+        <h1>التمثيل بالأعمدة</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>سنتدرّب على قراءة وتمثيل البيانات بالأعمدة والمقارنة بينها بصورة صحيحة وسريعة.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('bar-chart.html','nameBar')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>التمثيل بالأعمدة</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameBar" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('مثّل البيانات بالأعمدة ثم أجب عن الأسئلة ضمن الوقت المحدد.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- 2) التمثيل بالنقاط -->
+      <section class="intro">
+        <h1>التمثيل بالنقاط</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>سنتعلّم عرض البيانات بالنقاط وقراءة المنوال والقيم من المخطط بسرعة ودقة.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('dot-plot.html','nameDot')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>التمثيل بالنقاط</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameDot" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('اقرأ تمثيل النقاط وأجب عن الأسئلة ضمن الوقت.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- 3) اختيار طريقة التمثيل المناسبة -->
+      <section class="intro">
+        <h1>اختيار طريقة التمثيل المناسبة</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>نميّز متى نستخدم الأعمدة/النقاط/الصور/الخطوط حسب نوع البيانات والمطلوب.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('best-chart.html','nameChoose')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>اختيار طريقة التمثيل المناسبة</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameChoose" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('اختَرِ التمثيل الأنسب لكل موقف ثم أجيبي عن الأسئلة.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- 4) المنوال والوسيط والمدى والمتوسط الحسابي -->
+      <section class="intro">
+        <h1>المنوال والوسيط والمدى والمتوسط الحسابي</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>تدريب على إيجاد مقاييس النزعة المركزية والتشتت من البيانات المعطاة.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('mean.html','nameStats')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>المنوال والوسيط والمدى والمتوسط الحسابي</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameStats" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('أوجدي المنوال والوسيط والمدى والمتوسط الحسابي ضمن الوقت.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- 5) خطة حل مسألة: إنشاء جدول -->
+      <section class="intro">
+        <h1>خطة حل مسألة: إنشاء جدول</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>نستخدم الجدول كأداة لتنظيم المعطيات وتتبع النمط للوصول إلى الحل الصحيح.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('make-table.html','nameMakeTable')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>خطة حل مسألة: إنشاء جدول</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameMakeTable" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('أنشئي جدولًا ونظّمي المعطيات ثم أجيبي عن الأسئلة.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- 6) خطة حل المسألة: تمثيل المسألة -->
+      <section class="intro">
+        <h1>خطة حل المسألة: تمثيل المسألة</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>نتعلّم تحويل نص المسألة إلى تمثيل مناسب (جداول/رسومات/مخططات) لفهم العلاقات وحلّها بدقة.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('represent-problem.html','nameRepresent')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>خطة حل المسألة: تمثيل المسألة</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameRepresent" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('حوّل نص المسألة إلى تمثيل مناسب ثم أجب عن الأسئلة.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- 7) الكسور المتشابهة: جمع وطرحها -->
+      <section class="intro">
+        <h1>الكسور المتشابهة: جمع وطرحها</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>تدريب على جمع وطرح الكسور ذات المقامات المتشابهة وإخراج النتيجة في أبسط صورة.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('like-fractions.htm','nameFractions')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>الكسور المتشابهة: جمع وطرحها</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameFractions" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('أوجِد/ي ناتج الجمع أو الطرح في أبسط صورة ضمن الوقت.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+      <!-- 8) حل المعادلات البسيطة -->
+      <section class="intro">
+        <h1>حل المعادلات البسيطة</h1>
+        <p>بسم الله الرحمن الرحيم</p>
+        <p>نتمرّن على موازنة الطرفين واستخدام العمليات العكسية لحل معادلات من خطوة أو خطوتين.</p>
+        <p class="blue">اكتب اسمك ثم ابدأ اللعب.</p>
+      </section>
+
+      <section>
+        <div class="container card">
+          <div class="status-bar">
+            <div class="time">الوقت : <span>180</span></div>
+            <button type="button" class="btn start" onclick="goToGame('simple-equations.html','nameEquations')">ابدأ اللعب</button>
+            <div class="score">النقاط : <span>0</span></div>
+          </div>
+
+          <h2>حل المعادلات البسيطة</h2>
+
+          <div class="input-area">
+            <input type="text" id="nameEquations" placeholder="اكتب اسمك هنا" maxlength="20" autocomplete="off">
+            <button type="button" class="btn info-btn" onclick="alert('احلّي المعادلات باستخدام العمليات العكسية مع التحقق من الحل.')">التعليمات</button>
+          </div>
+
+          <img class="game-logo" src="img/logo.png" alt="شخصية كرتونية" loading="lazy" width="200" height="200">
+          <footer class="byline">إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+        </div>
+      </section>
+
+    </main>
+  </div> <!-- /layout -->
+
+  <!-- السكربتات -->
+  <script>
+    // دوال لتخزين/قراءة الاسم
+    function saveName(name){ sessionStorage.setItem('playerName', name); }
+    function getName(){ return sessionStorage.getItem('playerName') || ''; }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const input1 = document.getElementById('playerNameClassic');
+      if (input1) input1.addEventListener('keydown', e => { if (e.key === 'Enter') startGameClassic(); });
+
+      const input2 = document.getElementById('playerNameFast');
+      if (input2) input2.addEventListener('keydown', e => { if (e.key === 'Enter') startGameFast(); });
+
+      // عداد الزوار
+      const NAMESPACE = "fatima_sayed_math_game";
+      const KEY       = "index_page_views";
+      const box = document.getElementById('viewsCounter');
+
+      fetch(`https://api.countapi.xyz/hit/${NAMESPACE}/${KEY}`)
+        .then(r => r.json())
+        .then(({ value }) => renderDigits(value))
+        .catch(() => renderDigits("—"));
+
+      function renderDigits(val){
+        if (!box) return;
+        const str = String(val);
+        box.innerHTML = "";
+        for (const ch of str){
+          const span = document.createElement('span');
+          span.className = "digit";
+          span.textContent = ch;
+          box.appendChild(span);
+        }
+      }
+
+      // تشغيل Enter لكل درس
+      [
+        'nameBar','nameDot','nameChoose','nameStats','nameMakeTable',
+        'nameRepresent','nameFractions','nameEquations'
+      ].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el){
+          el.addEventListener('keydown', (e)=>{
+            if(e.key === 'Enter'){
+              const map = {
+                nameBar: 'bar-chart.html',
+                nameDot: 'dot-plot.html',
+                nameChoose: 'best-chart.html',
+                nameStats: 'mean.html',
+                nameMakeTable: 'make-table.html',
+                nameRepresent: 'represent-problem.html',
+                nameFractions: 'like-fractions.htm',
+                nameEquations: 'simple-equations.html'
+              };
+              goToGame(map[id], id);
+            }
+          });
+        }
+      });
+    });
+
+    function startGameClassic() {
+      const input = document.getElementById("playerNameClassic");
+      const name = input ? input.value.trim() : "";
+      if (!name) { alert("من فضلك أدخل اسمك أولاً"); input && input.focus(); return; }
+      saveName(name);
+      window.location.href = "game.html";
+    }
+
+    function startGameFast() {
+      const input = document.getElementById("playerNameFast");
+      const name = input ? input.value.trim() : "";
+      if (!name) { alert("من فضلك أدخل اسمك أولاً"); input && input.focus(); return; }
+      saveName(name);
+      window.location.href = "fast-math.html";
+    }
+
+    function goToGame(gamePath, inputId){
+      const input = document.getElementById(inputId);
+      const name  = (input?.value || '').trim();
+      if(!name){ alert('من فضلك أدخل اسمك أولاً'); input?.focus(); return; }
+      saveName(name);
+      window.location.href = gamePath;
+    }
+  </script>
+</body>
+</html>

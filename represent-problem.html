@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>خطة حل المسألة: تمثيل المسألة — 30 سؤال / 180 ثانية</title>
+  <style>
+    :root{
+      --bg:#f8f6fb; --ink:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --panel:#fff; --panel2:#faf5ff; --accent:#7c3aed; --ok:#16a34a; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:auto;padding:20px}
+    header{text-align:center}
+    h1{margin:8px 0 4px}
+    .subtitle{color:var(--muted)}
+    .status{display:flex;justify-content:space-between;gap:10px;background:var(--panel2);
+            border:1px solid var(--border);padding:10px;border-radius:12px;margin-top:12px}
+    .chip{font-weight:700;padding:8px 12px;border-radius:10px;background:#e0e7ff}
+    .chip.time{background:#ffe4e6}
+    .card{margin-top:16px;background:var(--panel);border:1px solid var(--border);
+          border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+    .qbar{background:#ede9fe;border:1px solid #ddd6fe;border-radius:10px;padding:14px;margin-bottom:12px}
+    .qbar h2{margin:0;text-align:center;font-size:clamp(18px,3.6vw,26px)}
+    .table{width:100%;border-collapse:collapse;margin:8px 0;border-radius:10px;overflow:hidden}
+    .table th,.table td{border:1px solid var(--border);padding:8px 10px;text-align:center}
+    .table thead{background:#f3f4f6}
+    .note{color:var(--muted);text-align:center;margin-top:6px}
+    .choices{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+    button.choice{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 16px;cursor:pointer;min-width:160px;font-weight:700}
+    button.choice:hover{filter:brightness(.98)}
+    .choice.correct{background:#ecfdf5;border-color:#bbf7d0}
+    .choice.wrong{background:#fef2f2;border-color:#fecaca}
+    .actions{display:flex;justify-content:center;margin-top:10px}
+    .btn{border:1px solid var(--border);background:#eef2ff;border-radius:10px;padding:10px 16px;cursor:pointer}
+    footer{margin-top:18px;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>خطة حل المسألة: تمثيل المسألة</h1>
+      <p class="subtitle">نتعلّم تحويل نص المسألة إلى تمثيل مناسب (جداول/رسومات/مخططات) لفهم العلاقات وحلّها بدقة. لديك 180 ثانية للإجابة على 30 سؤالًا. إذا أخطأت فستعود للصفحة الرئيسية.</p>
+    </header>
+
+    <div class="status">
+      <div class="chip">السؤال: <span id="counter">0 / 30</span></div>
+      <div class="chip">النقاط: <span id="score">0</span></div>
+      <div class="chip time">⏰ الوقت: <span id="time">180</span> ثانية</div>
+    </div>
+
+    <section class="card">
+      <div class="qbar"><h2 id="question">اضغط/ي ابدأ للانطلاق!</h2></div>
+
+      <div id="workArea"></div>
+      <p class="note" id="hint"></p>
+
+      <div class="choices" id="choices"></div>
+      <div class="actions"><button class="btn" id="startBtn">ابدأ ▶︎</button></div>
+    </section>
+
+    <footer id="done" hidden>أحسنت! اكتملت المهمة 🎉</footer>
+  </div>
+
+<script>
+/* إعدادات عامة */
+const TIME_LIMIT = 180;
+const TOTAL_Q    = 30;
+
+/* عناصر الواجهة */
+const counterEl = document.getElementById('counter');
+const scoreEl   = document.getElementById('score');
+const timeEl    = document.getElementById('time');
+const qEl       = document.getElementById('question');
+const workEl    = document.getElementById('workArea');
+const hintEl    = document.getElementById('hint');
+const choicesEl = document.getElementById('choices');
+const startBtn  = document.getElementById('startBtn');
+const doneEl    = document.getElementById('done');
+
+/* أدوات مساعدة */
+const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = a => a.sort(()=>Math.random()-0.5);
+
+/* مولدات الأسئلة — سهل */
+function g_bestChart_count(){
+  const set = [['أحذية', 'رياضة','رسم','علوم','مسرح'], ['تفاح','برتقال','موز','عنب']];
+  const pick = set[rnd(0,set.length-1)];
+  return {
+    text:`تريد/ين مقارنة أعداد عناصر منفصلة (${pick.join('، ')}) — ما التمثيل الأنسب؟`,
+    table:'', hint:'المقارنة بين فئات منفصلة → أعمدة/شريطية',
+    options:['مخطط أعمدة','مخطط خطي','مخطط دائري','مخطط مبعثر'],
+    answer:'مخطط أعمدة'
+  };
+}
+function g_bestChart_time(){
+  const thing = ['درجة الحرارة اليومية','المسافة المقطوعة كل ساعة','سعر سلعة كل يوم'][rnd(0,2)];
+  return {
+    text:`تتبّع ${thing} خلال الزمن. أي تمثيل أنسب؟`,
+    table:'', hint:'التغيّر مع الزمن → خطي',
+    options:['مخطط خطي','مخطط دائري','مخطط صور','مخطط مبعثر'],
+    answer:'مخطط خطي'
+  };
+}
+function g_bestChart_parts(){
+  const whole = ['ميزانية الأسرة','وقت اليوم','مكونات وجبة'][rnd(0,2)];
+  return {
+    text:`نريد تمثيل أجزاء ${whole} كنِسَب من الكل (100%). التمثيل الأنسب؟`,
+    table:'', hint:'أجزاء من كل → دائري',
+    options:['مخطط دائري','مخطط خطي','مخطط أعمدة','جدول'],
+    answer:'مخطط دائري'
+  };
+}
+function g_makeSimpleTable(){
+  const items = ['اليوم','الأسبوع','الشهر'][rnd(0,2)];
+  const start=rnd(2,5), add=rnd(2,6);
+  const a=[1,2,3,4].map(i=>start+(i-1)*add);
+  const tbl = makeTable([''+items,1,2,3,4], ['القيمة',...a]);
+  return {
+    text:`رتّب/ي البيانات الآتية في جدول لاكتشاف النمط ثم حدّد/ي ما يحدث في ${items} 5.`,
+    table:tbl, hint:`زيادة ثابتة (+${add}).`,
+    options:[String(start+4*add), String(start+3*add), String(start+5*add)],
+    answer:String(start+4*add)
+  };
+}
+
+/* مولدات — متوسط */
+function g_rateTable(){
+  const speed = rnd(20,60);
+  const h1=rnd(1,3), h2=h1+1, h3=h2+1;
+  const rows = [
+    ['الزمن (س)',h1,h2,h3],
+    ['المسافة (كم)',h1*speed,h2*speed,h3*speed]
+  ];
+  const ask=h3+1, ans=ask*speed;
+  return {
+    text:`سيارة تسير بسرعة ثابتة. أكمِل/ي الجدول ثم احسب/ي المسافة بعد ${ask} س.`,
+    table:htmlTable(rows), hint:`المسافة = السرعة × الزمن`,
+    options:[String(ans),String(ans-speed),String(ans+speed)],
+    answer:String(ans)
+  };
+}
+function g_proportionPrice(){
+  const price=rnd(300,900); // فلس لكل قطعة
+  const n1=rnd(2,4), n2=n1+1;
+  const rows=[['القطع',n1,n2],['السعر (فلس)',n1*price,n2*price]];
+  const ask=n2+1, ans=ask*price;
+  return {
+    text:`ثمن القطعة ثابت. مثّل/ي في جدول ثم احسب/ي سعر ${ask} قطع.`,
+    table:htmlTable(rows), hint:'التناسب طردي.',
+    options:[String(ans),String(ans+price),String(ans-price)],
+    answer:String(ans)
+  };
+}
+function g_fillMissingArithmetic(){
+  const a1=rnd(3,9), d=rnd(2,6);
+  const seq=[a1,a1+d,a1+2*d,a1+3*d,a1+4*d,a1+5*d];
+  const miss=rnd(1,4);
+  const show=seq.map((v,i)=> i===miss?'—':v);
+  return {
+    text:'أكمِل/ي القيمة المفقودة في الجدول (نمط حسابي).',
+    table:makeTable(['الخانة',1,2,3,4,5,6],['القيمة',...show]),
+    hint:`الفرق ثابت: +${d}`,
+    options:[String(seq[miss]), String(seq[miss]+d), String(seq[miss]-d)],
+    answer:String(seq[miss])
+  };
+}
+function g_chooseFromText(){
+  const ctx = [
+    ['أطوال أربعة طلاب','المقارنة بين أطوال فئات قليلة','مخطط أعمدة'],
+    ['رحلة درجات الحرارة كل ساعة','تغيّر مستمر مع الوقت','مخطط خطي'],
+    ['نتائج تصويت (نِسَب)','أجزاء من كل','مخطط دائري'],
+  ][rnd(0,2)];
+  return {
+    text:`نصّ المسألة: ${ctx[0]}. أي تمثيل تختار/ين؟ (تلميح: ${ctx[1]})`,
+    table:'', hint:'اختر التمثيل الأنسب للغرض.',
+    options:['مخطط أعمدة','مخطط خطي','مخطط دائري','مخطط مبعثر'],
+    answer:ctx[2]
+  };
+}
+function g_timeline(){
+  const y = rnd(2005,2015);
+  const years=[y,y+1,y+3,y+5];
+  const tbl = makeTable(['الحدث','A','B','C','D'],['السنة',...years]);
+  return {
+    text:'أي تمثيل يساعد على ترتيب الأحداث زمنيًا بسرعة؟',
+    table:tbl, hint:'محور زمني/خط زمني مناسب.',
+    options:['خط زمني','مخطط دائري','مخطط مبعثر','مدرج تكراري'],
+    answer:'خط زمني'
+  };
+}
+
+/* مولدات — صعب */
+function g_linearModel(){
+  const b=rnd(5,15), a=rnd(2,5);
+  const days=rnd(2,4);
+  const xval=days+1, y=a*xval+b;
+  const tbl = makeTable(['اليوم x',1,2,3,4], ['قيمة y',... [1,2,3,4].map(i=>a*i+b)]);
+  return {
+    text:`لدينا علاقة خطية: y تزيد بمقدار ثابت كل يوم وبالقيمة الابتدائية ${b}. استعمل/ي جدولًا لاكتشاف القانون ثم احسب/ي y عندما x=${xval}.`,
+    table:tbl, hint:`y = ${a}x + ${b}`,
+    options:[String(y), String(y+a), String(y-a)],
+    answer:String(y)
+  };
+}
+function g_recipeScale(){
+  const base=rnd(2,4), mult=rnd(2,4);
+  const rows=[['المكوّن','سكر','دقيق','حليب'],['لكل وصفة',2,3,1]];
+  const ansSugar=2*mult;
+  return {
+    text:`نريد تمثيل تكبير وصفة ×${mult} مرات باستعمال جدول تناسب. كم كوب سكر نحتاج؟`,
+    table:htmlTable(rows), hint:'التناسب: اضرب/ي كل المقادير في عامل التكبير.',
+    options:[String(ansSugar),String(ansSugar+1),String(ansSugar-1)],
+    answer:String(ansSugar)
+  };
+}
+function g_seatingPattern(){
+  const a=rnd(3,5); // عدد المقاعد في أول صف
+  const d=rnd(1,3);
+  const n=rnd(4,6);
+  const seq=[...Array(n)].map((_,i)=>a+i*d);
+  const next=a+n*d;
+  return {
+    text:`صفوف مقاعد تزيد بمقدار ثابت. استخدم/ي جدولًا ثم حدّد/ي عدد مقاعد الصف ${n+1}.`,
+    table:makeTable(['الصف',1,2,3,4,5].slice(0,n+1), ['المقاعد',...seq]),
+    hint:`نمط حسابي: +${d}`,
+    options:[String(next),String(next+d),String(next-d)],
+    answer:String(next)
+  };
+}
+function g_selectScatter(){
+  return {
+    text:'لدراسة العلاقة بين ساعات المذاكرة والدرجة النهائية، أي تمثيل تختار/ين؟',
+    table:'', hint:'علاقة بين متغيّرين عدديين → مبعثر',
+    options:['مخطط مبعثر','مخطط أعمدة','مخطط دائري','جدول فقط'],
+    answer:'مخطط مبعثر'
+  };
+}
+
+/* بناء 30 سؤال بدون تكرار وبترتيب سهل→متوسط→صعب */
+function buildQuestions(){
+  const used = new Set();
+  const out  = [];
+  function pushUnique(gen, n, tries=60){
+    for(let k=0;k<n;k++){
+      let t=0, q;
+      do{ q = gen(); t++; }while(t<tries && used.has(q.text));
+      if(!used.has(q.text)){ used.add(q.text); out.push(q); }
+    }
+  }
+
+  // سهل (12)
+  pushUnique(g_bestChart_count, 4);
+  pushUnique(g_bestChart_time , 4);
+  pushUnique(g_bestChart_parts, 2);
+  pushUnique(g_makeSimpleTable , 2);
+
+  // متوسط (12)
+  pushUnique(g_rateTable         , 4);
+  pushUnique(g_proportionPrice   , 3);
+  pushUnique(g_fillMissingArithmetic,3);
+  pushUnique(g_chooseFromText    , 2);
+  // إضافة خط زمني
+  pushUnique(g_timeline          , 1); // سيزيد العدد لاحقًا إن نقص
+
+  // صعب (6)
+  pushUnique(g_linearModel , 2);
+  pushUnique(g_recipeScale , 2);
+  pushUnique(g_seatingPattern,1);
+  pushUnique(g_selectScatter ,1);
+
+  // إكمال/nقص حتى 30 مع الحفاظ على عدم التكرار
+  const gens=[g_bestChart_count,g_bestChart_time,g_bestChart_parts,g_makeSimpleTable,g_rateTable,g_proportionPrice,g_fillMissingArithmetic,g_chooseFromText,g_timeline,g_linearModel,g_recipeScale,g_seatingPattern,g_selectScatter];
+  let guard=1000;
+  while(out.length<TOTAL_Q && guard--){
+    const q = gens[rnd(0,gens.length-1)]();
+    if(!used.has(q.text)){ used.add(q.text); out.push(q); }
+  }
+  return out.slice(0,TOTAL_Q);
+}
+
+/* جداول HTML */
+function makeTable(headersRow, dataRow){ return htmlTable([headersRow, dataRow]); }
+function htmlTable(rows){
+  let thead = '<thead><tr>'+ rows[0].map(c=>`<th>${c}</th>`).join('') +'</tr></thead>';
+  let body  = rows.slice(1).map(r=>'<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>').join('');
+  return `<table class="table">${thead}<tbody>${body}</tbody></table>`;
+}
+
+/* تشغيل اللعبة */
+let QUESTIONS = [];
+let idx = 0, score = 0, timeLeft = TIME_LIMIT, timer = null, running=false;
+
+function render(q){
+  counterEl.textContent = `${idx+1} / ${TOTAL_Q}`;
+  qEl.textContent       = q.text;
+  workEl.innerHTML      = q.table || '';
+  hintEl.textContent    = q.hint || '';
+  choicesEl.innerHTML   = '';
+  q.options.forEach(opt=>{
+    const b = document.createElement('button');
+    b.className = 'choice';
+    b.textContent = opt;
+    b.onclick = ()=> choose(opt, q.answer, b);
+    choicesEl.appendChild(b);
+  });
+}
+
+function choose(sel, ans, btn){
+  if(String(sel)===String(ans)){
+    btn.classList.add('correct');
+    score++; scoreEl.textContent = score;
+    setTimeout(()=>{
+      idx++;
+      if(idx>=TOTAL_Q){ win(); }
+      else render(QUESTIONS[idx]);
+    },140);
+  } else {
+    btn.classList.add('wrong');
+    setTimeout(()=>{ window.location.href='index.html'; },140);
+  }
+}
+
+function start(){
+  if(running) return;
+  running = true; doneEl.hidden=true;
+  QUESTIONS = buildQuestions();
+  idx=0; score=0; scoreEl.textContent=score;
+  timeLeft = TIME_LIMIT; timeEl.textContent=timeLeft;
+  render(QUESTIONS[idx]);
+  startBtn.disabled = true; startBtn.textContent = 'جاري…';
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--; timeEl.textContent=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      window.location.href = 'index.html';
+    }
+  },1000);
+}
+
+function win(){
+  clearInterval(timer);
+  qEl.textContent='اكتمل الاختبار ✅';
+  workEl.innerHTML=''; hintEl.textContent='';
+  choicesEl.innerHTML='';
+  doneEl.hidden=false; startBtn.disabled=false; startBtn.textContent='إعادة';
+  running=false;
+}
+
+document.getElementById('startBtn').addEventListener('click', start);
+</script>
+</body>
+</html>

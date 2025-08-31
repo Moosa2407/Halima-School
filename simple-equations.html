@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>حل المعادلات البسيطة — 30 سؤال / 180 ثانية</title>
+  <style>
+    :root{ --bg:#f8f6fb; --ink:#111827; --muted:#6b7280; --border:#e5e7eb;
+           --panel:#fff; --panel2:#faf5ff; --accent:#7c3aed; --ok:#16a34a; --bad:#dc2626; }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+    .wrap{max-width:1100px;margin:auto;padding:20px}
+    header{text-align:center}
+    h1{margin:8px 0 4px}
+    .subtitle{color:var(--muted)}
+    .status{display:flex;justify-content:space-between;gap:10px;background:var(--panel2);
+            border:1px solid var(--border);padding:10px;border-radius:12px;margin-top:12px}
+    .chip{font-weight:700;padding:8px 12px;border-radius:10px;background:#e0e7ff}
+    .chip.time{background:#ffe4e6}
+    .card{margin-top:16px;background:var(--panel);border:1px solid var(--border);
+          border-radius:14px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+    .qbar{background:#ede9fe;border:1px solid #ddd6fe;border-radius:10px;padding:14px;margin-bottom:12px}
+    .qbar h2{margin:0;text-align:center;font-size:clamp(18px,3.6vw,26px)}
+    .big{font-size:26px;font-weight:800;text-align:center}
+    .choices{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+    .choice{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 16px;cursor:pointer;min-width:120px;font-weight:700}
+    .choice:hover{filter:brightness(.98)}
+    .choice.correct{background:#ecfdf5;border-color:#bbf7d0}
+    .choice.wrong{background:#fef2f2;border-color:#fecaca}
+    .actions{display:flex;justify-content:center;margin-top:10px}
+    .btn{border:1px solid var(--border);background:#eef2ff;border-radius:10px;padding:10px 16px;cursor:pointer}
+    .note{color:var(--muted);text-align:center;margin-top:6px}
+    footer{margin-top:18px;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>حل المعادلات البسيطة</h1>
+      <p class="subtitle">تمرين على موازنة الطرفين واستخدام العمليات العكسية لحل معادلات من خطوة أو خطوتين. لديك 180 ثانية للإجابة على 30 سؤالًا. إذا أخطأت فستعود للصفحة الرئيسية.</p>
+    </header>
+
+    <div class="status">
+      <div class="chip">السؤال: <span id="counter">0 / 30</span></div>
+      <div class="chip">النقاط: <span id="score">0</span></div>
+      <div class="chip time">⏰ الوقت: <span id="time">180</span> ثانية</div>
+    </div>
+
+    <section class="card">
+      <div class="qbar"><h2 id="question">أوجد قيمة x:</h2></div>
+      <div class="big" id="eqBox">اضغط/ي ابدأ للانطلاق!</div>
+      <p class="note" id="hint"></p>
+      <div class="choices" id="choices"></div>
+      <div class="actions"><button class="btn" id="startBtn">ابدأ ▶︎</button></div>
+    </section>
+
+    <footer id="done" hidden>أحسنت! اكتملت المهمة 🎉</footer>
+  </div>
+
+<script>
+/* إعدادات */
+const TIME_LIMIT = 180;
+const TOTAL_Q = 30;
+
+/* عناصر */
+const counterEl = document.getElementById('counter');
+const scoreEl   = document.getElementById('score');
+const timeEl    = document.getElementById('time');
+const eqEl      = document.getElementById('eqBox');
+const hintEl    = document.getElementById('hint');
+const choicesEl = document.getElementById('choices');
+const startBtn  = document.getElementById('startBtn');
+const doneEl    = document.getElementById('done');
+
+/* مساعدات */
+const rnd = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+function makeChoices(correct){
+  const s = new Set([correct]);
+  while(s.size<3){
+    const delta = rnd(1,3)*(Math.random()<.5?-1:1);
+    s.add(correct+delta);
+  }
+  return [...s].sort(()=>Math.random()-0.5).map(String);
+}
+const asEq = s => s.replace(/\*/g,'·');
+
+/* مولدات */
+function gen_add_sub(){ // سهل
+  const a = rnd(1,12), x = rnd(0,20);
+  if(Math.random()<0.5){ const b=x+a; return {eq:`x + ${a} = ${b}`, ans:x, hint:'اطرح نفس العدد من الطرفين.'}; }
+  const b = x-a; return {eq:`x − ${a} = ${b}`, ans:x, hint:'أضف نفس العدد للطرفين.'};
+}
+function gen_mul_div(){ // سهل
+  const a=rnd(2,9), x=rnd(1,12);
+  if(Math.random()<0.5){ const b=a*x; return {eq:`${a}x = ${b}`, ans:x, hint:'اقسم الطرفين على نفس العدد.'}; }
+  const b=rnd(1,10); return {eq:`x ÷ ${a} = ${b}`, ans:b*a, hint:'اضرب الطرفين في نفس العدد.'};
+}
+function gen_ax_plus_b(){ // متوسط
+  const a=rnd(2,9), x=rnd(-9,12), b=rnd(-9,9); const c=a*x+b;
+  const bt=b>=0?`+ ${b}`:`− ${Math.abs(b)}`;
+  return {eq:`${a}x ${bt} = ${c}`, ans:x, hint:'اعكس: اطرح/أضف ثم اقسم.'};
+}
+function gen_x_over_a_plus_b(){ // متوسط
+  const a=rnd(2,9), x=rnd(-18,18), b=rnd(-9,9); const c=x/a+b;
+  if(!Number.isInteger(c)) return gen_x_over_a_plus_b();
+  const bt=b>=0?`+ ${b}`:`− ${Math.abs(b)}`;
+  return {eq:`(x ÷ ${a}) ${bt} = ${c}`, ans:x, hint:'اعكس: اطرح/أضف ثم اضرب.'};
+}
+function gen_a_bracket(){ // صعب
+  const a=rnd(2,9), x=rnd(-9,12), b=rnd(-5,5); const c=a*(x+b);
+  const bt=b>=0?`+ ${b}`:`− ${Math.abs(b)}`;
+  return {eq:`${a}(x ${bt}) = ${c}`, ans:x, hint:'اقسم ثم اطرح/أضف.'};
+}
+
+/* بناء أسئلة بدون تكرار وبترتيب سهل→متوسط→صعب */
+function buildNonRepeating(gen, count, used){
+  const list=[];
+  while(list.length<count){
+    const q=gen();
+    if(!used.has(q.eq)){ used.add(q.eq); list.push(q); }
+  }
+  return list;
+}
+function buildQuestions(){
+  const used=new Set();
+  const easy   = [
+    ...buildNonRepeating(gen_add_sub, 8, used),
+    ...buildNonRepeating(gen_mul_div, 4, used),
+  ];
+  const medium = [
+    ...buildNonRepeating(gen_ax_plus_b, 6, used),
+    ...buildNonRepeating(gen_x_over_a_plus_b, 6, used),
+  ];
+  const hard   = buildNonRepeating(gen_a_bracket, 6, used);
+  return [...easy, ...medium, ...hard].slice(0, TOTAL_Q);
+}
+
+/* تشغيل */
+let QUESTIONS=[], idx=0, score=0, timeLeft=TIME_LIMIT, timer=null, running=false;
+
+function render(q){
+  counterEl.textContent = `${idx+1} / ${TOTAL_Q}`;
+  eqEl.textContent      = asEq(q.eq);
+  hintEl.textContent    = q.hint || '';
+  choicesEl.innerHTML   = '';
+  makeChoices(q.ans).forEach(opt=>{
+    const b=document.createElement('button');
+    b.className='choice'; b.textContent=opt;
+    b.onclick=()=>choose(Number(opt), q.ans, b);
+    choicesEl.appendChild(b);
+  });
+}
+
+function choose(sel, ans, btn){
+  if(sel===ans){
+    btn.classList.add('correct');
+    score++; scoreEl.textContent=score;
+    setTimeout(()=>{ idx++; if(idx>=TOTAL_Q){ win(); } else { render(QUESTIONS[idx]); } },140);
+  }else{
+    btn.classList.add('wrong');
+    setTimeout(()=>{ window.location.href='index.html'; },140);
+  }
+}
+
+function start(){
+  if(running) return;
+  running=true; doneEl.hidden=true;
+  QUESTIONS = buildQuestions(); idx=0; score=0; scoreEl.textContent=score;
+  timeLeft=TIME_LIMIT; timeEl.textContent=timeLeft;
+  render(QUESTIONS[idx]);
+  startBtn.disabled=true; startBtn.textContent='جاري…';
+  clearInterval(timer);
+  timer=setInterval(()=>{ timeLeft--; timeEl.textContent=timeLeft; if(timeLeft<=0){ clearInterval(timer); window.location.href='index.html'; } },1000);
+}
+
+function win(){
+  clearInterval(timer);
+  eqEl.textContent='اكتمل الاختبار ✅'; hintEl.textContent=''; choicesEl.innerHTML='';
+  doneEl.hidden=false; startBtn.disabled=false; startBtn.textContent='إعادة'; running=false;
+}
+
+document.getElementById('startBtn').addEventListener('click', start);
+</script>
+</body>
+</html>

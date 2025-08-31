@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>التمثيل بالنقاط</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body{font-family:'Tahoma',sans-serif;background:#f9f6ff;margin:0;color:#111;text-align:center}
+    h1{margin:16px 0 6px}
+    .status-bar{display:flex;justify-content:space-between;gap:12px;padding:12px 20px}
+    .time,.score{font-weight:bold;padding:8px 15px;border-radius:8px}
+    .time{background:#ffe0ef;color:#900}
+    .score{background:#e0edff;color:#003366}
+    .board{max-width:1100px;margin:14px auto;padding:14px}
+    .plot{background:#fff;border:1px dashed #cbd5e1;border-radius:12px;padding:16px}
+    .axis{display:flex;justify-content:center;gap:22px;align-items:flex-end;flex-wrap:wrap}
+    .tick{min-width:42px;display:flex;flex-direction:column;align-items:center;gap:8px}
+    .dots{min-height:120px;display:flex;flex-direction:column-reverse;gap:6px}
+    .dot{font-weight:900;line-height:1}
+    .xlabel{font-weight:700;margin-top:4px}
+    .question-box{margin:16px auto 28px;padding:16px;border:1px solid #ccc;border-radius:10px;width:min(780px,92%);background:#fff0ff}
+    .qtext{font-size:20px;margin:0 0 10px}
+    .answers{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+    .answers button{padding:10px 18px;border:1px solid #aaa;border-radius:8px;background:#f9f9f9;cursor:pointer}
+    .answers button:hover{background:#eee}
+    footer{margin:18px 0 26px;color:#333}
+  </style>
+</head>
+<body>
+  <h1>التمثيل بالنقاط</h1>
+  <p>لديك 180 ثانية للإجابة على الأسئلة تدريجيًا. إذا أخطأت، ستعود للصفحة الرئيسية.</p>
+
+  <div class="status-bar">
+    <span class="time">⏰ الوقت: <span id="time">180</span> ثانية</span>
+    <span class="score">النقاط: <span id="score">0</span></span>
+  </div>
+
+  <div class="board">
+    <div class="plot">
+      <h3 id="title" style="margin:0 0 8px">—</h3>
+      <div id="axis" class="axis"></div>
+    </div>
+
+    <div class="question-box">
+      <h2 class="qtext" id="question">السؤال سيظهر هنا</h2>
+      <div class="answers" id="answers"></div>
+    </div>
+  </div>
+
+  <footer>إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+
+<script>
+/* ============= 1) مجموعات البيانات مثل الملزمة ============= */
+// (أ) القصص
+const STORIES = {
+  title:'عدد القصص التي يمتلكها طلاب الصف السادس',
+  min:0, max:12, step:1,
+  // عدّلي القيم براحتك: قيمة لكل طالب
+  data:[1,2,2,3,3,3,4,5,6,7,7,8,9,9,10,10,11,12]
+};
+// (ب) الأوزان (كجم)
+const WEIGHTS = {
+  title:'أوزان مجموعة من الأطفال (كجم)',
+  min:16, max:30, step:1,
+  data:[18,18,19,20,20,21,22,22,22,23,24,24,25,26,27,28,29,29]
+};
+
+/* ============= 2) رسم مخطط النقاط × على خط الأعداد ============= */
+const axisEl = document.getElementById('axis');
+function countMap(arr){
+  const m=new Map(); arr.forEach(v=>m.set(v,(m.get(v)||0)+1)); return m;
+}
+function drawDotPlot(ds){
+  axisEl.innerHTML='';
+  const freq=countMap(ds.data);
+  for(let x=ds.min; x<=ds.max; x+=ds.step){
+    const tick=document.createElement('div'); tick.className='tick';
+    const dots=document.createElement('div'); dots.className='dots';
+    const n=freq.get(x)||0;
+    for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='dot'; d.textContent='×'; dots.appendChild(d); }
+    const lab=document.createElement('div'); lab.className='xlabel'; lab.textContent=x;
+    tick.appendChild(dots); tick.appendChild(lab); axisEl.appendChild(tick);
+  }
+}
+
+/* ============= 3) توليد الأسئلة بنفس أسلوب الورقة ============= */
+function makeMCQNumber(correct, deltas=[-1,1,2]){
+  const s=new Set([correct]); deltas.forEach(d=>s.add(correct+d)); 
+  return Array.from(s).filter(v=>v>=0).slice(0,3).sort(()=>Math.random()-0.5).map(String);
+}
+function mode(arr){
+  const m=countMap(arr); let best=null,c=-1;
+  m.forEach((v,k)=>{ if(v>c){c=v;best=k;} }); return best;
+}
+
+// أسئلة القصص
+function storyQuestions(ds){
+  const m=countMap(ds.data), out=[];
+  const c3=m.get(3)||0;
+  out.push({ds, text:'ما عدد الطلبة الذين لديهم 3 قصص؟', answer:String(c3), options:makeMCQNumber(c3,[-1,1,2,3])});
+  const ge10=ds.data.filter(v=>v>=10).length;
+  out.push({ds, text:'ما عدد الطلبة الذين لديهم 10 قصص وأكثر؟', answer:String(ge10), options:makeMCQNumber(ge10)});
+  const le4=ds.data.filter(v=>v<=4).length;
+  out.push({ds, text:'كم عدد الطلبة الذين لديهم 4 قصص فأقل؟', answer:String(le4), options:makeMCQNumber(le4,[-2,-1,1,2])});
+  const md=mode(ds.data);
+  out.push({ds, text:'ما المنوال (أكثر عدد قصص تكرارًا)؟', answer:String(md), options:makeMCQNumber(md)});
+  return out;
+}
+
+// أسئلة الأوزان
+function weightQuestions(ds){
+  const m=countMap(ds.data), out=[];
+  const w4 = Number([...m.entries()].find(([w,c])=>c===4)?.[0] ?? NaN);
+  if(!Number.isNaN(w4)){
+    const near=[w4-1,w4+1,w4+2].filter(x=>x>=ds.min&&x<=ds.max);
+    const options=[String(w4), ...near.map(String)].sort(()=>Math.random()-0.5).slice(0,3);
+    out.push({ds, text:'ما الوزن الذي وُجد فيه 4 أطفال؟', answer:String(w4), options});
+  }
+  const ge22=ds.data.filter(v=>v>=22).length;
+  out.push({ds, text:'ما عدد الأطفال الذين أوزانهم 22 كجم وأكبر؟', answer:String(ge22), options:makeMCQNumber(ge22)});
+  const lt20=ds.data.filter(v=>v<20).length;
+  out.push({ds, text:'كم عدد الأطفال الذين أوزانهم أقل من 20 كجم؟', answer:String(lt20), options:makeMCQNumber(lt20)});
+  const md=mode(ds.data);
+  out.push({ds, text:'ما المنوال (أكثر وزن تكرارًا)؟', answer:String(md), options:makeMCQNumber(md)});
+  return out;
+}
+
+/* ============= 4) بنك الأسئلة وتجهيز التشغيل ============= */
+const BANK=[...storyQuestions(STORIES), ...weightQuestions(WEIGHTS)];
+const QUESTIONS=BANK; // تقدري تقللي/تزودي بعدد الأسئلة من هنا
+
+// عناصر الواجهة
+const titleEl=document.getElementById('title');
+const qEl=document.getElementById('question');
+const ansEl=document.getElementById('answers');
+const scoreEl=document.getElementById('score');
+const timeEl=document.getElementById('time');
+
+let i=0, score=0, timeLeft=180, timer=null;
+
+function render(){
+  if(i>=QUESTIONS.length){
+    alert('أحسنت! أنهيت جميع الأسئلة 👏');
+    window.location.href='index.html'; return;
+  }
+  const item=QUESTIONS[i];
+  titleEl.textContent=item.ds.title;
+  drawDotPlot(item.ds);
+  qEl.textContent=`(${i+1} / ${QUESTIONS.length}) ${item.text}`;
+  ansEl.innerHTML='';
+  item.options.forEach(op=>{
+    const b=document.createElement('button');
+    b.textContent=op;
+    b.onclick=()=>check(op,item.answer);
+    ansEl.appendChild(b);
+  });
+}
+function check(sel, correct){
+  if(String(sel)===String(correct)){
+    score++; scoreEl.textContent=score; i++; render();
+  }else{
+    clearInterval(timer);
+    alert('خطأ! ستعود للصفحة الرئيسية.');
+    window.location.href='index.html';
+  }
+}
+function startTimer(){
+  timer=setInterval(()=>{
+    timeLeft--; timeEl.textContent=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(timer);
+      alert('انتهى الوقت!');
+      window.location.href='index.html';
+    }
+  },1000);
+}
+
+startTimer();
+render();
+</script>
+</body>
+</html>

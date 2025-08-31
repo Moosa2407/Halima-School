@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>تحدّي الضرب السريع</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .qa { font-size: 22px; margin: 12px 0; }
+    .actions { display:flex; gap:8px; justify-content:center; margin:10px 0; }
+    .actions button{ padding:10px 16px; border:1px solid #000; cursor:pointer; font-weight:700; }
+    .btn-true{ background:#c8e6c9; }
+    .btn-false{ background:#ffcdd2; }
+    .result { margin-top:12px; font-weight:700; }
+    .badge { display:inline-block; padding:4px 10px; border:1px solid #000; margin-inline-start:4px; }
+  </style>
+</head>
+<body>
+
+  <main>
+    <section>
+      <div class="container">
+        <div class="status-bar">
+          <div class="time">الوقت : <span id="time">180</span></div>
+          <div class="start" style="border:1px solid #000;">اللاعب: <span id="playerLabel">—</span></div>
+          <div class="score">النقاط : <span id="score">0</span></div>
+        </div>
+
+        <h2>تحدّي الضرب (3 عوامل)</h2>
+        <div style="margin-bottom:8px">
+          المستوى: <span id="levelName" class="badge">سهل</span>
+        </div>
+
+        <div class="qa">
+          <div id="question">— × — × — = —</div>
+          <div class="actions">
+            <button class="btn-true" id="btnTrue">صحيح ✓</button>
+            <button class="btn-false" id="btnFalse">خطأ ✗</button>
+          </div>
+        </div>
+
+        <div id="message" class="result"></div>
+
+        <footer>بالتوفيق! ثبّت تركيزك وسرّع إجاباتك 👌</footer>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // قراءة الاسم من الصفحة الرئيسية
+    const playerName = (localStorage.getItem('playerName') || 'لاعب');
+    document.getElementById('playerLabel').textContent = playerName;
+
+    const timeEl = document.getElementById('time');
+    const scoreEl = document.getElementById('score');
+    const qEl = document.getElementById('question');
+    const msgEl = document.getElementById('message');
+    const levelEl = document.getElementById('levelName');
+
+    const btnTrue = document.getElementById('btnTrue');
+    const btnFalse = document.getElementById('btnFalse');
+
+    let time = 180;
+    let score = 0;
+
+    // متغيرات السؤال الحالي
+    let a = 0, b = 0, c = 0, right = 0, shown = 0;
+
+    // ثابت لازم يكون موجود
+    const FIXED_POOL = [2, 4, 5];
+
+    // تحديد المستوى حسب النقاط
+    function getDifficulty(score){
+      if (score <= 5) return 'easy';
+      if (score <= 15) return 'medium';
+      return 'hard';
+    }
+
+    function rand(min, max){
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function setLevelLabel(diff){
+      if (diff === 'easy') levelEl.textContent = 'سهل';
+      else if (diff === 'medium') levelEl.textContent = 'متوسط';
+      else levelEl.textContent = 'صعب';
+    }
+
+    // إنشاء سؤال جديد
+    function newQuestion(){
+      const diff = getDifficulty(score);
+      setLevelLabel(diff);
+
+      // نطاق القيم حسب المستوى
+      let minV = 1, maxV = 9, maxOffset = 6;
+      if (diff === 'medium'){ minV = 2; maxV = 12; maxOffset = 10; }
+      if (diff === 'hard'){   minV = 3; maxV = 15; maxOffset = 14; }
+
+      // اختر القيمة الثابتة
+      const fixedVal = FIXED_POOL[rand(0, FIXED_POOL.length - 1)];
+
+      // ضع الثابت في خانة عشوائية من الثلاثة
+      const pos = rand(0, 2);
+      const vals = [0, 0, 0];
+      vals[pos] = fixedVal;
+
+      // الباقي قيم عشوائية
+      for (let i = 0; i < 3; i++){
+        if (i === pos) continue;
+        vals[i] = rand(minV, maxV);
+      }
+
+      [a, b, c] = vals;
+      right = a * b * c;
+
+      // نعرض الناتج المقترح: صحيح أو خاطئ
+      const makeCorrect = Math.random() < 0.5;
+      if (makeCorrect){
+        shown = right;
+      } else {
+        let offset = rand(-maxOffset, maxOffset);
+        if (offset === 0) offset = 3;
+        shown = right + offset;
+        if (shown <= 0) shown = right + Math.abs(offset) + 3;
+      }
+
+      qEl.textContent = `${a} × ${b} × ${c} = ${shown}`;
+      msgEl.textContent = '';
+    }
+
+    function endGame(reason){
+      btnTrue.disabled = true;
+      btnFalse.disabled = true;
+      msgEl.textContent = reason === 'time'
+        ? `انتهى الوقت! نتيجتك: ${score}`
+        : `خطأ! الإجابة الصحيحة: ${right}. نتيجتك: ${score}`;
+
+      setTimeout(()=> { window.location.href = 'index.html'; }, 2500);
+    }
+
+    function tick(){
+      time--;
+      timeEl.textContent = time;
+      if (time <= 0){
+        clearInterval(timer);
+        endGame('time');
+      }
+    }
+
+    btnTrue.addEventListener('click', ()=>{
+      const isCorrect = (shown === right);
+      if (isCorrect){
+        score++; scoreEl.textContent = score; newQuestion();
+      } else {
+        clearInterval(timer);
+        endGame('wrong');
+      }
+    });
+
+    btnFalse.addEventListener('click', ()=>{
+      const isCorrect = (shown !== right);
+      if (isCorrect){
+        score++; scoreEl.textContent = score; newQuestion();
+      } else {
+        clearInterval(timer);
+        endGame('wrong');
+      }
+    });
+
+    // بدء اللعبة
+    newQuestion();
+    const timer = setInterval(tick, 1000);
+  </script>
+
+</body>
+</html>

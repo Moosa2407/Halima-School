@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>تحدي الضرب</title>
+  <style>
+    body {
+      font-family: Tahoma, sans-serif;
+      background-color: #08a6d2;
+      text-align: center;
+      padding-top: 50px;
+      direction: rtl;
+    }
+    .box {
+      background-color: #e0f7fa;
+      padding: 20px;
+      border-radius: 10px;
+      width: 300px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    h2 { color: #333; }
+    .question { font-size: 24px; margin: 20px 0; }
+    input[type="number"] { padding: 10px; width: 60%; font-size: 16px; }
+    button {
+      padding: 10px 20px; margin-top: 10px; font-size: 16px;
+      background-color: #00bcd4; color: rgb(255, 255, 255); border: none; border-radius: 5px; cursor: pointer;
+    }
+    .status { margin-top: 20px; font-size: 16px; }
+    .end-message { font-size: 20px; color: #d32f2f; margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <h2>مرحباً <span id="playerNameDisplay"></span> 👋</h2>
+    <div class="question" id="questionText">كم ناتج: ؟</div>
+    <input type="number" id="answerInput" placeholder="أدخل الإجابة" autocomplete="off">
+    <br>
+    <button onclick="checkAnswer()">تحقق</button>
+
+    <div class="status">
+      ⏳ الوقت المتبقي: <span id="timer">02:00</span><br>
+      ✅ النقاط: <span id="score">0</span>
+    </div>
+
+    <div class="end-message" id="endMessage"></div>
+  </div>
+
+  <!-- أصوات -->
+  <audio id="correctSound" src="https://cdn.pixabay.com/audio/2022/10/12/audio_657356be2f.mp3"></audio>
+  <audio id="wrongSound"   src="https://cdn.pixabay.com/audio/2022/03/15/audio_3a91b5ac95.mp3"></audio>
+
+  <script>
+    // ===== إعدادات عامة =====
+    const MIN_FACTOR = 2, MAX_FACTOR = 13;
+    const TOTAL_SECONDS = 120; // دقيقتان
+
+    // ===== بنك أسئلة بدون تكرار وبالترتيب من السهل للصعب =====
+    function createQuestionPool(){
+      const arr = [];
+      for(let a=MIN_FACTOR; a<=MAX_FACTOR; a++){
+        for(let b=MIN_FACTOR; b<=MAX_FACTOR; b++){
+          arr.push({a,b});
+        }
+      }
+      // ترتيب تدريجي: مجموع الرقمين ثم حاصل الضرب
+      arr.sort((p,q)=>{
+        const s1=p.a+p.b, s2=q.a+q.b;
+        if(s1!==s2) return s1-s2;
+        return (p.a*p.b) - (q.a*q.b);
+      });
+      return arr;
+    }
+
+    // ===== حالة اللعبة =====
+    const questionsPool = createQuestionPool();
+    let qIndex = 0;
+    let num1, num2;
+    let score = 0;
+    let timeLeft = TOTAL_SECONDS;
+    let totalTimerId;
+
+    // DOM
+    const questionEl   = document.getElementById("questionText");
+    const answerInput  = document.getElementById("answerInput");
+    const timerEl      = document.getElementById("timer");
+    const scoreEl      = document.getElementById("score");
+    const playerNameEl = document.getElementById("playerNameDisplay");
+    const endMessage   = document.getElementById("endMessage");
+    const correctSound = document.getElementById("correctSound");
+    const wrongSound   = document.getElementById("wrongSound");
+
+    function loadPlayerName(){
+      const n = localStorage.getItem("playerName");
+      if(n) playerNameEl.textContent = n;
+    }
+
+    function formatMMSS(s){
+      const m = Math.floor(s/60);
+      const sec = s % 60;
+      return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    }
+
+    function startTotalTimer(){
+      timerEl.textContent = formatMMSS(timeLeft);
+      totalTimerId = setInterval(()=>{
+        timeLeft--;
+        timerEl.textContent = formatMMSS(timeLeft);
+        if(timeLeft <= 0){
+          clearInterval(totalTimerId);
+          timesUp();
+        }
+      }, 1000);
+    }
+
+    function generateQuestion(){
+      if(qIndex >= questionsPool.length){
+        // خلصنا كل الأسئلة قبل انتهاء الوقت
+        endMessage.textContent = `رائع! أنهيت جميع الأسئلة. نتيجتك: ${score}`;
+        answerInput.disabled = true;
+        clearInterval(totalTimerId);
+        setTimeout(()=> {
+          alert(`انتهى التحدي! نتيجتك: ${score}`);
+          window.location.href = "index.html";
+        }, 700);
+        return;
+      }
+      const {a,b} = questionsPool[qIndex++];
+      num1 = a; num2 = b;
+      questionEl.textContent = `كم ناتج: ${num1} × ${num2} ؟`;
+      answerInput.value = "";
+      answerInput.focus();
+    }
+
+    function checkAnswer(){
+      const user = parseInt(answerInput.value);
+      if(user === num1*num2){
+        correctSound.currentTime = 0; 
+        correctSound.play();
+        score++; 
+        scoreEl.textContent = score;
+        generateQuestion();
+      }else{
+        wrongSound.currentTime = 0; 
+        wrongSound.play();
+        setTimeout(()=>{
+          alert("إجابة خاطئة! سيتم إعادتك إلى الصفحة الرئيسية.");
+          window.location.href = "index.html";
+        }, 700);
+      }
+    }
+
+    function timesUp(){
+      answerInput.disabled = true;
+      endMessage.textContent = `انتهى الوقت! نتيجتك: ${score}`;
+      setTimeout(()=>{
+        alert(`انتهى الوقت! نتيجتك: ${score}`);
+        window.location.href = "index.html";
+      }, 700);
+    }
+
+    // تشغيل عند فتح الصفحة
+    loadPlayerName();
+    generateQuestion();     // أول سؤال (سهل)
+    startTotalTimer();      // عداد إجمالي دقيقتين
+  </script>
+
+</body>
+</html>

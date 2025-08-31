@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>اختيار طريقة التمثيل — ارسم الأعمدة بنفسك</title>
+  <style>
+    :root{
+      --bg:#f8f6fb; --ink:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --panel:#fff; --panel2:#faf5ff; --ok:#16a34a; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Tahoma", Arial, sans-serif}
+    .wrap{max-width:1100px;margin:auto;padding:18px}
+    h1{margin:8px 0 4px;text-align:center}
+    .subtitle{color:var(--muted);text-align:center;margin-bottom:12px}
+    .status{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);padding:10px 14px;border-radius:12px}
+    .chip{font-weight:700;padding:8px 12px;border-radius:10px;background:#e0e7ff}
+    .chip.time{background:#fde0e0}
+    .task{margin-top:16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+    .task h2{margin:0 0 8px;font-size:20px}
+    .grid-area{display:grid;grid-template-columns: 1fr 1fr;gap:16px}
+    .table{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .table header{background:#f3f4f6;padding:8px 10px;font-weight:700}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-top:1px solid var(--border);padding:8px 10px;text-align:center}
+    .canvas{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;background:#fff}
+    .axis{display:flex;gap:14px;align-items:flex-end;justify-content:center;min-height:240px;flex-wrap:wrap}
+    .col{width:64px;display:flex;flex-direction:column-reverse;gap:2px;align-items:stretch;cursor:pointer}
+    .cell{height:12px;border:1px solid #e5e7eb;background:#ffffff;border-radius:3px}
+    .cell.f{background:#aac8ff;border-color:#90b4ff}
+    .label{text-align:center;margin-top:6px;font-weight:700}
+    .help{color:var(--muted);font-size:14px;margin:4px 0 8px}
+    .controls{display:flex;gap:10px;justify-content:center;margin-top:8px}
+    button{padding:10px 16px;border-radius:10px;border:1px solid #cbd5e1;background:#e5e7ff;cursor:pointer}
+    button:hover{filter:brightness(0.98)}
+    .note{margin-top:6px;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>ارسم الأعمدة بنفسك</h1>
+    <p class="subtitle">لديك 180 ثانية لإكمال المهام. إذا أخطأت أو انتهى الوقت ستعود للصفحة الرئيسية.</p>
+
+    <div class="status">
+      <div class="chip">المهمة: <span id="taskNo">1 / —</span></div>
+      <div class="chip">النقاط: <span id="score">0</span></div>
+      <div class="chip time">⏰ الوقت: <span id="time">180</span> ثانية</div>
+    </div>
+
+    <section id="task" class="task">
+      <h2 id="taskTitle">—</h2>
+      <div class="grid-area">
+        <!-- الجدول -->
+        <div class="table">
+          <header id="tableTitle">البيانات</header>
+          <table id="dataTable"><thead><tr><th>الصنف</th><th>القيمة</th></tr></thead><tbody></tbody></table>
+        </div>
+
+        <!-- مساحة الرسم -->
+        <div>
+          <div class="canvas">
+            <div class="help" id="scaleHelp">اضغط بالزر الأيسر لزيادة خانة، واليمين للنقصان.</div>
+            <div id="axis" class="axis"></div>
+          </div>
+          <div class="controls">
+            <button id="checkBtn">تحقّق</button>
+          </div>
+          <p class="note">يسار: زيادة خانة • يمين: إنقاص خانة</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+/* =======================
+   1) بنك المهام — كبير ومتنوع (بدون تكرار)
+   scale = قيمة كل خانة رأسية
+   maxRows = عدد الخانات الرأسية المتاحة
+   ======================= */
+
+// مثل الملزمة (1): هوايات
+const T1 = {
+  title: 'السؤال (1): مثِّل بيانات هوايات الطلاب بالأعمدة',
+  tableTitle: 'الهوايات المفضلة',
+  scaleText: 'مقياس الرسم: كل خانة = 5 طلاب',
+  scale: 5, maxRows: 12,
+  data: { 'كرة القدم':30, 'كرة السلة':20, 'الطائرة':25, 'التنس':15 }
+};
+
+// مثل الملزمة (2): المعادن
+const T2 = {
+  title: 'السؤال (2): مثِّل بيانات المعادن بالأعمدة وقارِن بينها',
+  tableTitle: 'أنواع الخام في منجم',
+  scaleText: 'مقياس الرسم: كل خانة = 10 وحدات',
+  scale: 10, maxRows: 16,
+  data: { 'ذهب':140, 'فضة':120, 'حديد':110, 'ألمنيوم':100, 'نحاس':70, 'زنك':60 }
+};
+
+// مثل الملزمة (3): الحرارة شهريًا
+const T3 = {
+  title: 'السؤال (3): مثِّل متوسط درجات الحرارة بالأعمدة',
+  tableTitle: 'متوسط درجات الحرارة (°م)',
+  scaleText: 'مقياس الرسم: كل خانة = 1°م',
+  scale: 1, maxRows: 50,
+  data: { 'يناير':22,'فبراير':23,'مارس':25,'أبريل':28,'مايو':30,'يونيو':35,'يوليو':44,'أغسطس':43,'سبتمبر':39,'أكتوبر':33,'نوفمبر':28,'ديسمبر':22 }
+};
+
+// مهام إضافية (لا تكرار)
+const T4 = {
+  title: 'استهلاك العصائر خلال أسبوع',
+  tableTitle: 'استهلاك العصائر (لتر)',
+  scaleText: 'مقياس الرسم: كل خانة = 5 لترات',
+  scale: 5, maxRows: 12,
+  data: { 'برتقال':40, 'تفاح':25, 'مانجو':30, 'فراولة':15 }
+};
+const T5 = {
+  title: 'نتائج اختبار الرياضيات',
+  tableTitle: 'عدد الطلاب في كل مستوى',
+  scaleText: 'مقياس الرسم: كل خانة = 2 طلاب',
+  scale: 2, maxRows: 12,
+  data: { 'ممتاز':10, 'جيد جدًا':14, 'جيد':8, 'مقبول':6 }
+};
+const T6 = {
+  title: 'مبيعات متجر الأدوات',
+  tableTitle: 'عدد القطع المباعة',
+  scaleText: 'مقياس الرسم: كل خانة = 5 قطع',
+  scale: 5, maxRows: 12,
+  data: { 'أقلام':45, 'دفاتر':30, 'مساطر':25, 'حقائب':15 }
+};
+const T7 = {
+  title: 'أنواع الحيوانات الأليفة لدى الطلاب',
+  tableTitle: 'عدد الطلاب',
+  scaleText: 'مقياس الرسم: كل خانة = 1 طالب',
+  scale: 1, maxRows: 20,
+  data: { 'قطط':12, 'طيور':9, 'أسماك':7, 'أرانب':5 }
+};
+const T8 = {
+  title: 'طرق الذهاب إلى المدرسة',
+  tableTitle: 'عدد الطلاب',
+  scaleText: 'مقياس الرسم: كل خانة = 2 طلاب',
+  scale: 2, maxRows: 15,
+  data: { 'حافلة':18, 'سيرًا':10, 'سيارة':14, 'دراجة':6 }
+};
+const T9 = {
+  title: 'حصص الفواكه المفضلة',
+  tableTitle: 'عدد الأصوات',
+  scaleText: 'مقياس الرسم: كل خانة = 1 صوت',
+  scale: 1, maxRows: 20,
+  data: { 'تفاح':9, 'موز':12, 'عنب':7, 'فراولة':11 }
+};
+const T10 = {
+  title: 'قراءات هطول الأمطار (مم)',
+  tableTitle: 'أربعة أشهر مختارة',
+  scaleText: 'مقياس الرسم: كل خانة = 5 مم',
+  scale: 5, maxRows: 16,
+  data: { 'يناير':30, 'أبريل':45, 'يوليو':20, 'أكتوبر':35 }
+};
+
+// بنك كامل
+const POOL = [T1,T2,T3,T4,T5,T6,T7,T8,T9,T10];
+
+// نختار عشوائيًا 8 مهام بدون تكرار
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
+const TASKS = shuffle([...POOL]).slice(0, 8);
+
+/* =======================
+   2) عناصر الواجهة
+   ======================= */
+const taskNoEl = document.getElementById('taskNo');
+const scoreEl = document.getElementById('score');
+const timeEl = document.getElementById('time');
+const taskTitleEl = document.getElementById('taskTitle');
+const tableTitleEl = document.getElementById('tableTitle');
+const tbodyEl = document.querySelector('#dataTable tbody');
+const axisEl = document.getElementById('axis');
+const scaleHelpEl = document.getElementById('scaleHelp');
+const checkBtn = document.getElementById('checkBtn');
+
+/* =======================
+   3) منطق الرسم والتقييم
+   ======================= */
+let idx = 0, score = 0, timeLeft = 180, timer = null;
+let current = null;
+const drawn = new Map(); // label -> rows filled
+
+function startTimer(){
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--; timeEl.textContent = timeLeft;
+    if(timeLeft<=0){ fail('انتهى الوقت!'); }
+  },1000);
+}
+
+function loadTask(i){
+  current = TASKS[i];
+  taskNoEl.textContent = `${i+1} / ${TASKS.length}`;
+  taskTitleEl.textContent = current.title;
+  tableTitleEl.textContent = current.tableTitle;
+  scaleHelpEl.textContent = current.scaleText + ' — (نقرة يسار تزيد، يمين تنقص)';
+
+  // جدول البيانات
+  tbodyEl.innerHTML = '';
+  Object.entries(current.data).forEach(([k,v])=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${k}</td><td>${v}</td>`;
+    tbodyEl.appendChild(tr);
+  });
+
+  // شبكة الأعمدة
+  axisEl.innerHTML = '';
+  drawn.clear();
+  for(const label of Object.keys(current.data)){
+    const col = document.createElement('div');
+    col.className = 'col';
+    col.title = 'يسار: +1 خانة • يمين: -1 خانة';
+    // خلايا
+    for(let r=0;r<current.maxRows;r++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      col.appendChild(cell);
+    }
+    // التفاعل
+    let height = 0;
+    drawn.set(label, height);
+    const setHeight = (h)=>{
+      height = Math.max(0, Math.min(current.maxRows, h));
+      drawn.set(label, height);
+      const cells = [...col.children];
+      cells.forEach(c=>c.classList.remove('f'));
+      for(let i=0;i<height;i++){ cells[i].classList.add('f'); }
+    };
+    col.addEventListener('click', (e)=>{ e.preventDefault(); setHeight(height+1); });
+    col.addEventListener('contextmenu', (e)=>{ e.preventDefault(); setHeight(height-1); });
+
+    // لافتة الاسم
+    const wrap = document.createElement('div');
+    wrap.appendChild(col);
+    const lab = document.createElement('div');
+    lab.className = 'label';
+    lab.textContent = label;
+    wrap.appendChild(lab);
+    axisEl.appendChild(wrap);
+  }
+}
+
+function check(){
+  // القيمة المرسومة = عدد الخانات × scale
+  for(const [label,value] of Object.entries(current.data)){
+    const rows = drawn.get(label)||0;
+    const drawnValue = rows * current.scale;
+    if(drawnValue !== value){
+      fail(`إجابة غير صحيحة في "${label}". القيمة المرسومة = ${drawnValue} والصحيحة = ${value}.`);
+      return;
+    }
+  }
+  // صحيح → التالي
+  score++; scoreEl.textContent = score;
+  if(idx+1 >= TASKS.length){
+    alert('أحسنت! أكملت جميع المهام بنجاح 👏');
+    window.location.href = 'index.html';
+  }else{
+    idx++; loadTask(idx);
+  }
+}
+
+function fail(msg){
+  clearInterval(timer);
+  alert(msg + ' سنعود الآن إلى الصفحة الرئيسية.');
+  window.location.href = 'index.html';
+}
+
+/* =======================
+   4) تشغيل
+   ======================= */
+loadTask(idx);
+startTimer();
+checkBtn.addEventListener('click', check);
+</script>
+</body>
+</html>

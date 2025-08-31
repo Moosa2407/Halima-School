@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>التمثيل بالخطوط — 30 سؤال / 1280 ثانية</title>
+  <style>
+    :root{
+      --bg:#f8f6fb; --ink:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --panel:#fff; --panel2:#faf5ff; --accent:#805ad5; --ok:#16a34a; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Tahoma", Arial, sans-serif}
+    .wrap{max-width:1100px;margin:auto;padding:18px}
+    h1{margin:8px 0 4px;text-align:center}
+    .subtitle{color:var(--muted);text-align:center;margin-bottom:12px}
+    .status{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);padding:10px 14px;border-radius:12px}
+    .chip{font-weight:700;padding:8px 12px;border-radius:10px;background:#e0e7ff}
+    .chip.time{background:#fde0e0}
+    .task{margin-top:16px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(0,0,0,.05)}
+    .task h2{margin:0 0 8px;font-size:20px}
+    .grid-area{display:grid;grid-template-columns: 1fr 1fr;gap:16px}
+    .table{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+    .table header{background:#f3f4f6;padding:8px 10px;font-weight:700}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-top:1px solid var(--border);padding:8px 10px;text-align:center}
+    .canvas{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;background:#fff}
+    .help{color:var(--muted);font-size:14px;margin:4px 0 8px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+    button{padding:10px 16px;border-radius:10px;border:1px solid #cbd5e1;background:#e5e7ff;cursor:pointer}
+    button:hover{filter:brightness(0.98)}
+    .note{margin-top:6px;color:var(--muted)}
+    svg{width:100%;height:360px;display:block;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px}
+    .axis text{font-size:12px;fill:#374151}
+    .grid line{stroke:#e5e7eb}
+    .line{fill:none;stroke:#60a5fa;stroke-width:3}
+    .pt{fill:#2563eb;cursor:pointer}
+    .qbox{margin-top:10px;background:#faf5ff;border:1px solid #ead6ff;border-radius:10px;padding:10px}
+    .answers{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+    .answers button{background:#fff;border:1px solid #cbd5e1}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>التمثيل بالخطوط</h1>
+    <p class="subtitle">لديك <b>1280 ثانية</b> لإكمال <b>30 سؤالًا</b>. إذا أخطأت أو انتهى الوقت ستعود إلى الصفحة الرئيسية.</p>
+
+    <div class="status">
+      <div class="chip">السؤال: <span id="qNo">1 / 30</span></div>
+      <div class="chip">النقاط: <span id="score">0</span> / 30</div>
+      <div class="chip time">⏰ الوقت: <span id="time">1280</span> ثانية</div>
+    </div>
+
+    <section id="task" class="task">
+      <h2 id="taskTitle">—</h2>
+
+      <!-- لوحة القراءة من مخطط جاهز -->
+      <div id="readPane" style="display:none">
+        <svg id="staticChart" viewBox="0 0 600 360"></svg>
+        <div class="qbox">
+          <div id="readQuestion">—</div>
+          <div class="answers" id="readAnswers"></div>
+        </div>
+      </div>
+
+      <!-- لوحة الرسم من جدول -->
+      <div id="drawPane" style="display:none">
+        <div class="grid-area">
+          <div class="table">
+            <header id="tableTitle">البيانات</header>
+            <table id="dataTable"><thead><tr><th id="xHead">المحور الأفقي</th><th id="yHead">القيمة</th></tr></thead><tbody></tbody></table>
+          </div>
+          <div>
+            <div class="canvas">
+              <div class="help" id="scaleHelp">انقر على الشبكة لتعيين النقاط. انقر مرة أخرى لتغيير موضع النقطة.</div>
+              <svg id="drawChart" viewBox="0 0 600 360"></svg>
+            </div>
+            <div class="controls">
+              <button id="checkBtn">تحقّق من الرسم</button>
+              <span class="note">ضع نقطة لكل عنصر ثم وصله النظام تلقائيًا.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="qbox" id="followupBox" style="display:none">
+          <div id="followQuestion">—</div>
+          <div class="answers" id="followAnswers"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+<script>
+/* ========= بيانات الدروس ========= */
+// (1) مخطط جاهز — وزن المولود (زيادة شبه ثابتة)
+const READ = {
+  title: 'اقرأ المخطط التالي ثم أجب:',
+  xLabel: 'الشهر', yLabel: 'الوزن (كجم)',
+  X: ['١','٢','٣','٤','٥','٦'],
+  Y: [3.2, 3.8, 4.4, 5.0, 5.6, 6.2]
+};
+
+// (2) ارسم — ساعات النهار
+const DRAW1 = {
+  title: 'مثِّل بيانات ساعات النهار بالخطوط ثم أجب:',
+  tableTitle: 'ساعات النهار بالمدينة',
+  xHead: 'الشهر', yHead: 'الساعة',
+  xLabel: 'الشهر', yLabel: 'الساعة',
+  hint: 'مقياس الرسم الرأسي = 1 ساعة',
+  X: ['مايو','يونيو','يوليو','أغسطس'],
+  Y: [13, 12, 10, 11]
+};
+
+// (3) ارسم — عدد السكان
+const DRAW2 = {
+  title: 'مثِّل عدد السكان بالخطوط ثم أجب:',
+  tableTitle: 'عدد السكان (بالآلاف)',
+  xHead: 'السنة', yHead: 'عدد السكان (ألف)',
+  xLabel: 'السنة', yLabel: 'عدد السكان (ألف)',
+  hint: 'كل خط أفقي ≈ 50 ألف',
+  X: ['2001','2002','2003','2004'],
+  Y: [180, 210, 230, 260]
+};
+
+/* ========= أدوات عامة ========= */
+const qNoEl   = document.getElementById('qNo');
+const scoreEl = document.getElementById('score');
+const timeEl  = document.getElementById('time');
+const titleEl = document.getElementById('taskTitle');
+
+const readPane = document.getElementById('readPane');
+const staticChart = document.getElementById('staticChart');
+const readQ = document.getElementById('readQuestion');
+const readA = document.getElementById('readAnswers');
+
+const drawPane = document.getElementById('drawPane');
+const tableTitleEl = document.getElementById('tableTitle');
+const xHeadEl = document.getElementById('xHead');
+const yHeadEl = document.getElementById('yHead');
+const tbodyEl = document.querySelector('#dataTable tbody');
+const scaleHelpEl = document.getElementById('scaleHelp');
+const drawChart = document.getElementById('drawChart');
+const checkBtn  = document.getElementById('checkBtn');
+const followBox = document.getElementById('followupBox');
+const followQ   = document.getElementById('followQuestion');
+const followA   = document.getElementById('followAnswers');
+
+let TOTAL = 30;           // مجموع الأسئلة
+let idx = 0;              // مؤشر السؤال في بنك الأسئلة الموحد
+let score = 0;
+let timeLeft = 1280;
+let timer = null;
+
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
+function choice3(correct, pool){           // يبني ثلاث اختيارات
+  const set = new Set([correct]);
+  shuffle(pool).forEach(v=>set.add(v));
+  return shuffle(Array.from(set).slice(0,3).map(x=>String(x)));
+}
+function fmt(v){ return (Math.round(v*10)/10).toString(); }
+
+/* ========= رسم الشبكة والخط بـ SVG ========= */
+function svgGrid(svg, X, Y, labels, showLine=true, editable=false, onPick=null){
+  svg.innerHTML='';
+  const W=600,H=360,pL=60,pR=20,pT=20,pB=40;
+  const x0=pL, y0=H-pB, x1=W-pR, y1=pT;
+  const gG=svge('g'), gA=svge('g'), gL=svge('g');
+  svg.append(gG,gA,gL);
+
+  const maxY=Math.max(...Y, 1);
+  const steps=10;
+  for(let i=0;i<=steps;i++){
+    const yy= y0 - i*(y0-y1)/steps;
+    gG.appendChild(svge('line',{x1:x0,y1:yy,x2:x1,y2:yy,stroke:'#e5e7eb'}));
+    gA.appendChild(svge('text',{x:x0-8,y:yy+4,'text-anchor':'end'}, Math.round(i*maxY/steps)));
+  }
+  const n=X.length;
+  for(let i=0;i<n;i++){
+    const xx= x0 + i*(x1-x0)/(n-1);
+    gG.appendChild(svge('line',{x1:xx,y1:y0,x2:xx,y2:y1,stroke:'#f3f4f6'}));
+    gA.appendChild(svge('text',{x:xx,y:y0+20,'text-anchor':'middle'}, X[i]));
+  }
+  gA.appendChild(svge('text',{x:(x0+x1)/2,y:H-6,'text-anchor':'middle'}, labels.x));
+  gA.appendChild(svge('text',{x:16,y:(y0+y1)/2,transform:`rotate(-90 16 ${(y0+y1)/2})`,'text-anchor':'middle'}, labels.y));
+
+  // خط جاهز
+  if(showLine && Y.length===n){
+    const pts = Y.map((v,i)=>[x0 + i*(x1-x0)/(n-1), y0 - (v/maxY)*(y0-y1)]);
+    gL.appendChild(svge('path',{d:pts.map((p,i)=>(i?'L':'M')+p[0]+','+p[1]).join(' '),class:'line'}));
+    pts.forEach(p=>gL.appendChild(svge('circle',{cx:p[0],cy:p[1],r:5,fill:'#2563eb'})));
+  }
+
+  // نقاط تفاعلية للرسم
+  if(editable){
+    const picked = new Array(n);
+    for(let i=0;i<n;i++){
+      const xx= x0 + i*(x1-x0)/(n-1);
+      const m = svge('circle',{cx:xx,cy:y0,r:6,fill:'#94a3b8',class:'pt'});
+      m.addEventListener('click', e=>{
+        const box=svg.getBoundingClientRect();
+        const cy=Math.max(y1,Math.min(y0, e.clientY-box.top));
+        m.setAttribute('cy',cy);
+        const frac=(y0-cy)/(y0-y1);
+        picked[i]=Math.round(frac*maxY);
+        redraw();
+        if(onPick) onPick(picked);
+      });
+      gL.appendChild(m);
+    }
+    function redraw(){
+      const old=svg.querySelector('path.user'); if(old) old.remove();
+      if(picked.every(v=>Number.isFinite(v))){
+        const pts = picked.map((v,i)=>[x0 + i*(x1-x0)/(n-1), y0 - (v/maxY)*(y0-y1)]);
+        gL.appendChild(svge('path',{d:pts.map((p,i)=>(i?'L':'M')+p[0]+','+p[1]).join(' '),class:'user',stroke:'#10b981','stroke-width':'3',fill:'none'}));
+      }
+    }
+    return picked; // نعيد المصفوفة ليستخدمها المتحقق
+  }
+  return null;
+}
+function svge(tag,attrs={},text){
+  const e=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(const k in attrs) e.setAttribute(k,attrs[k]);
+  if(text!==undefined) e.textContent=text;
+  return e;
+}
+
+/* ========= بنك الأسئلة (30) =========
+   نبني 10 أسئلة من كل مجموعة (قراءة/رسم1/رسم2) = 30
+===================================== */
+const BANK = [];
+
+// 10 أسئلة قراءة من المخطط الجاهز
+(function(){
+  const X=READ.X, Y=READ.Y;
+  const n=X.length, max=Math.max(...Y), min=Math.min(...Y);
+  // ارسم المخطط الجاهز عند العرض
+  BANK.push({type:'read-init', title:READ.title, x:X, y:Y, labels:{x:READ.xLabel,y:READ.yLabel}});
+  // 1
+  BANK.push({type:'read-q', q:'ما الوحدة على المحور الرأسي؟', correct:'كجم', options:['كجم','سم','ساعة']});
+  // 2
+  BANK.push({type:'read-q', q:`كم كان الوزن في الشهر ${X[3]}؟`, correct:fmt(Y[3]), options:choice3(fmt(Y[3]),[fmt(Y[2]),fmt(Y[4])]).map(String)});
+  // 3
+  BANK.push({type:'read-q', q:'في أي شهر كان الوزن الأصغر؟', correct:`الشهر ${X[Y.indexOf(min)]}`, options:shuffle([`الشهر ${X[Y.indexOf(min)]}`,`الشهر ${X[0]}`,`الشهر ${X[n-1]}`])});
+  // 4
+  BANK.push({type:'read-q', q:'في أي شهر كان الوزن الأكبر؟', correct:`الشهر ${X[Y.indexOf(max)]}`, options:shuffle([`الشهر ${X[Y.indexOf(max)]}`,`الشهر ${X[2]}`,`الشهر ${X[3]}`])});
+  // 5 فرق بين شهرين
+  const d1=fmt(Y[5]-Y[0]);
+  BANK.push({type:'read-q', q:`كم الزيادة الكلية من الشهر ${X[0]} إلى ${X[5]}؟`, correct:d1+' كجم', options:shuffle([d1+' كجم','0.6 كجم','2.0 كجم'])});
+  // 6 معدل شهري
+  const avg=fmt((Y[n-1]-Y[0])/(n-1));
+  BANK.push({type:'read-q', q:'ما معدل الزيادة الشهري التقريبي؟', correct:avg+' كجم', options:shuffle([avg+' كجم','0.3 كجم','1.2 كجم'])});
+  // 7 أكبر قفزة بين شهرين متتالين (كلها 0.6 هنا)
+  BANK.push({type:'read-q', q:'أكبر زيادة بين شهرين متتالين تساوي:', correct:'0.6 كجم', options:shuffle(['0.6 كجم','0.8 كجم','0.3 كجم'])});
+  // 8 وصف الاتجاه
+  BANK.push({type:'read-q', q:'وصف التغيّر العام للوزن:', correct:'يزداد بثبات تقريبًا', options:shuffle(['يزداد بثبات تقريبًا','ينقص','لا يتغير'])});
+  // 9 هل الوزن عند الشهر ٤ أكبر من ٥؟ (سؤال مفهومي عكسي)
+  BANK.push({type:'read-q', q:'هل الوزن في الشهر ٤ أكبر من الشهر ٥؟', correct:'لا', options:shuffle(['لا','نعم','متساويان'])});
+  // 10 مجموع الأوزان تقريبًا (تجميعي بسيط)
+  const sum = Y.reduce((a,b)=>a+b,0);
+  BANK.push({type:'read-q', q:'أي القيم أقرب لمجموع الأوزان لكل الأشهر؟', correct:Math.round(sum)+' كجم', options:choice3(Math.round(sum)+' كجم',[Math.round(sum-2)+' كجم',Math.round(sum+2)+' كجم'])});
+})();
+
+// 10 أسئلة بعد رسم ساعات النهار
+(function(){
+  BANK.push({type:'draw-init', data:DRAW1});
+  const X=DRAW1.X, Y=DRAW1.Y, n=X.length;
+  BANK.push({type:'follow', q:'ما التدرّج لكل محور؟', correct:'الأفقي أشهر / الرأسي ساعات', options:shuffle(['الأفقي أشهر / الرأسي ساعات','الأفقي ساعات / الرأسي أشهر','كلاهما ساعات'])});
+  BANK.push({type:'follow', q:`كم عدد الساعات في ${X[0]}؟`, correct:String(Y[0]), options:choice3(Y[0],[Y[1],Y[2],Y[3]])});
+  BANK.push({type:'follow', q:`كم الفرق بين ${X[0]} و ${X[2]}؟`, correct:String(Math.abs(Y[0]-Y[2])), options:choice3(Math.abs(Y[0]-Y[2]),[1,2,3,4])});
+  BANK.push({type:'follow', q:'ما الشهر ذو أقل عدد ساعات؟', correct:X[Y.indexOf(Math.min(...Y))], options:shuffle([X[2],X[1],X[3]])});
+  BANK.push({type:'follow', q:'ما الاتجاه من مايو إلى يوليو؟', correct:'ينقص تدريجيًا', options:shuffle(['ينقص تدريجيًا','يزداد','ثابت'])});
+  BANK.push({type:'follow', q:'ما مجموع الساعات في يونيو ويوليو؟', correct:String(Y[1]+Y[2]), options:choice3(Y[1]+Y[2],[Y[1]+Y[3],Y[0]+Y[2],Y[0]+Y[1]])});
+  BANK.push({type:'follow', q:'كم المتوسّط (تقريبًا) لساعات هذه الأشهر؟', correct:String(Math.round(Y.reduce((a,b)=>a+b,0)/n)), options:choice3(Math.round(Y.reduce((a,b)=>a+b,0)/n),[10,11,12,13])});
+  BANK.push({type:'follow', q:`في أي شهر يعود الارتفاع بعد الانخفاض؟`, correct:'أغسطس', options:shuffle(['أغسطس','يونيو','يوليو'])});
+  BANK.push({type:'follow', q:`إذا استمر النقص بمقدار 1 ساعة بعد يوليو، كم نتوقع في أغسطس؟`, correct:String(9), options:choice3(9,[10,8,11])});
+})();
+
+// 10 أسئلة بعد رسم السكان
+(function(){
+  BANK.push({type:'draw-init', data:DRAW2});
+  const X=DRAW2.X, Y=DRAW2.Y, n=X.length;
+  BANK.push({type:'follow', q:'أعلى سنة في عدد السكان:', correct:X[Y.indexOf(Math.max(...Y))], options:shuffle(X.slice())});
+  BANK.push({type:'follow', q:`كم كان عدد السكان عام ${X[0]} (بالألف)?`, correct:String(Y[0]), options:choice3(Y[0],[Y[1],Y[2],Y[3]])});
+  BANK.push({type:'follow', q:`ما الزيادة من ${X[0]} إلى ${X[3]}؟`, correct:String(Y[3]-Y[0]), options:choice3(Y[3]-Y[0],[20,50,40,60])});
+  BANK.push({type:'follow', q:'الاتجاه العام من 2001 إلى 2004:', correct:'زيادة', options:shuffle(['زيادة','انخفاض','ثبات'])});
+  BANK.push({type:'follow', q:`كم الفرق بين ${X[1]} و ${X[2]}؟`, correct:String(Math.abs(Y[1]-Y[2])), options:choice3(Math.abs(Y[1]-Y[2]),[10,30,40])});
+  BANK.push({type:'follow', q:'ما متوسط عدد السكان (تقريبًا) عبر السنوات الأربع؟', correct:String(Math.round(Y.reduce((a,b)=>a+b,0)/n)), options:choice3(Math.round(Y.reduce((a,b)=>a+b,0)/n),[200,220,230,240])});
+  BANK.push({type:'follow', q:`إذا استمرت الزيادة بنفس وتيرة 2003→2004، تقدير 2005؟`, correct:String(Y[3]+(Y[3]-Y[2])), options:choice3(Y[3]+(Y[3]-Y[2]),[Y[3]+10,Y[3]+20,Y[3]+40])});
+  BANK.push({type:'follow', q:`أي السنوات أقل من 220 ألف؟`, correct:'2001 فقط', options:shuffle(['2001 فقط','2001 و2002','2002 فقط'])});
+  BANK.push({type:'follow', q:`أكبر قفزة وقعت بين:`, correct:'2001 → 2002', options:shuffle(['2001 → 2002','2002 → 2003','2003 → 2004'])});
+})();
+
+// تأكد أن BANK يحوي بالضبط 30 عنصر سؤال فعّال (عدا init)
+const QUESTION_STREAM = [];
+BANK.forEach(item=>{
+  if(item.type.endsWith('init')) QUESTION_STREAM.push(item);
+  else QUESTION_STREAM.push(item);
+});
+// سنعتمد ترتيبها الحالي (سهل → أصعب)
+
+let mode = null;           // read | draw
+let picked = null;         // مصفوفة القيم المرسومة
+let stepInBlock = 0;       // عداد داخل مجموعة القراءة/المتابعة
+
+/* ========= محرك العرض ========= */
+function startTimer(){
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--; timeEl.textContent=timeLeft;
+    if(timeLeft<=0) fail('انتهى الوقت!');
+  },1000);
+}
+
+function next(){
+  if(idx >= QUESTION_STREAM.length){ win(); return; }
+  const item = QUESTION_STREAM[idx];
+
+  // تحديث العداد الظاهر (نتجاهل عناصر init في العد)
+  const visibleIndex = 1 + QUESTION_STREAM.slice(0,idx).filter(x=>!x.type.endsWith('init')).length;
+  const visibleTotal = QUESTION_STREAM.filter(x=>!x.type.endsWith('init')).length;
+  qNoEl.textContent = `${visibleIndex} / ${visibleTotal}`;
+
+  if(item.type==='read-init'){
+    mode='read';
+    titleEl.textContent = READ.title;
+    readPane.style.display='block';
+    drawPane.style.display='none';
+    svgGrid(staticChart, item.x, item.y, item.labels, true, false);
+    stepInBlock=0;
+    idx++; // انتقل للسؤال الأول بعد التهيئة
+    renderReadQuestion();
+    return;
+  }
+  if(item.type==='draw-init'){
+    mode='draw';
+    readPane.style.display='none';
+    drawPane.style.display='block';
+    titleEl.textContent = item.data.title;
+    // جهّز الجدول
+    tableTitleEl.textContent = item.data.tableTitle;
+    xHeadEl.textContent = item.data.xHead;
+    yHeadEl.textContent = item.data.yHead;
+    tbodyEl.innerHTML='';
+    item.data.X.forEach((x,i)=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${x}</td><td>${item.data.Y[i]}</td>`;
+      tbodyEl.appendChild(tr);
+    });
+    scaleHelpEl.textContent = item.data.hint;
+    // ارسم شبكة تفاعلية
+    picked = svgGrid(drawChart, item.data.X, [], {x:item.data.xLabel,y:item.data.yLabel}, false, true, p=>{ picked=p; });
+    followBox.style.display='none';
+    checkBtn.onclick = ()=> verifyDrawing(item.data);
+    idx++; // بعد init، ننتقل لأسئلة المتابعة عند التحقق
+    return;
+  }
+}
+
+/* ======== أسئلة القراءة (المخطط الجاهز) ======== */
+function renderReadQuestion(){
+  // ابحث عن أول عنصر read-q من الموضع الحالي
+  const qItem = QUESTION_STREAM[idx];
+  if(!qItem || qItem.type!=='read-q'){ next(); return; }
+  readQ.textContent = qItem.q;
+  readA.innerHTML='';
+  shuffle(qItem.options.slice()).forEach(opt=>{
+    const b=document.createElement('button');
+    b.textContent=opt;
+    b.onclick=()=>{
+      if(opt===qItem.correct){ score++; scoreEl.textContent=score; idx++; renderReadQuestion(); }
+      else fail('إجابة غير صحيحة!');
+    };
+    readA.appendChild(b);
+  });
+}
+
+/* ======== التحقق من الرسم ======== */
+function verifyDrawing(ds){
+  if(!picked || picked.some(v=>!Number.isFinite(v))){
+    alert('ضَع نقطة لكل عنصر أولًا.');
+    return;
+  }
+  // تطابق تام مع القيم (بدون سماحية هنا)
+  for(let i=0;i<ds.Y.length;i++){
+    if(picked[i] !== ds.Y[i]){ fail('هناك نقطة أو أكثر في غير موضعها.'); return; }
+  }
+  // نجح الرسم → انتقل لأسئلة المتابعة (follow)
+  followBox.style.display='block';
+  presentFollow();
+}
+
+function presentFollow(){
+  // ابحث عن أول عنصر follow من الموضع الحالي
+  if(idx >= QUESTION_STREAM.length){ win(); return; }
+  const item = QUESTION_STREAM[idx];
+  if(!item || item.type!=='follow'){ next(); return; }
+  followQ.textContent = item.q;
+  followA.innerHTML='';
+  shuffle(item.options.slice()).forEach(opt=>{
+    const b=document.createElement('button');
+    b.textContent=opt;
+    b.onclick=()=>{
+      if(opt===item.correct){ score++; scoreEl.textContent=score; idx++; presentFollow(); }
+      else fail('إجابة غير صحيحة!');
+    };
+    followA.appendChild(b);
+  });
+}
+
+/* ======== نهاية/فشل ======== */
+function win(){
+  clearInterval(timer);
+  alert('أحسنت! أكملت 30 سؤالًا بنجاح 👏');
+  window.location.href='index.html';
+}
+function fail(msg){
+  clearInterval(timer);
+  alert(msg + ' ستعود الآن إلى الصفحة الرئيسية.');
+  window.location.href='index.html';
+}
+
+/* ======== تشغيل ======== */
+startTimer();
+next();
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>المتوسط الحسابي — لعبة 30 سؤال</title>
+  <style>
+    :root{
+      --bg:#f8f6fb; --ink:#111827; --muted:#6b7280; --border:#e5e7eb;
+      --panel:#fff; --panel2:#faf5ff; --accent:#7c3aed; --ok:#16a34a; --bad:#dc2626;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:"Tahoma",Arial,sans-serif}
+    .wrap{max-width:980px;margin:auto;padding:18px}
+    h1{margin:6px 0 4px;text-align:center}
+    .sub{color:var(--muted);text-align:center;margin-bottom:10px}
+    .status{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);padding:10px 12px;border-radius:12px}
+    .chip{font-weight:700;padding:8px 12px;border-radius:10px;background:#e0e7ff}
+    .chip.time{background:#ffe4e6}
+    .card{margin-top:14px;background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 8px 20px rgba(0,0,0,.05)}
+    .qbar{background:#ede9fe;border:1px solid #c4b5fd;padding:14px;border-radius:10px;text-align:center;font-weight:800}
+    .answers{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:14px}
+    .answers button{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 18px;cursor:pointer;min-width:140px;font-weight:700}
+    .answers button:hover{filter:brightness(.98)}
+    table{border-collapse:collapse;margin:8px auto}
+    th,td{border:1px solid #d1d5db;padding:6px 10px}
+    .tiny{color:var(--muted);font-size:13px;text-align:center;margin-top:6px}
+    footer{margin:18px 0;text-align:center;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>المتوسط الحسابي</h1>
+    <p class="sub">أجب عن <b>30</b> سؤالًا خلال الوقت المحدد. إذا أخطأت ستعود إلى الصفحة الرئيسية.</p>
+
+    <div class="status">
+      <div class="chip">السؤال: <span id="qNo">1 / 30</span></div>
+      <div class="chip">النقاط: <span id="score">0</span> / 30</div>
+      <div class="chip time">⏰ الوقت: <span id="time">180</span> ثانية</div>
+    </div>
+
+    <section class="card">
+      <div id="qbar" class="qbar">اضغط على أحد الخيارات</div>
+      <div id="extra"></div>
+      <div id="answers" class="answers"></div>
+      <p class="tiny">تلميح: المتوسط = مجموع القيم ÷ عددها</p>
+    </section>
+
+    <footer>إعداد: أ.بيان جعفر عبدالرزاق عباس</footer>
+  </div>
+
+<script>
+/* ========== إعدادات عامة ========== */
+const TOTAL_QUESTIONS = 30;
+const TIME_LIMIT = 180; // عدّليها إن حبيتي (مثلاً 1280)
+const ROUND_TO = 1;     // التقريب لعدد عشري واحد
+
+/* ========== عناصر DOM ========== */
+const qNoEl = document.getElementById('qNo');
+const scoreEl = document.getElementById('score');
+const timeEl = document.getElementById('time');
+const qbar = document.getElementById('qbar');
+const answersBox = document.getElementById('answers');
+const extraBox = document.getElementById('extra');
+
+/* ========== أدوات مساعدة ========== */
+const rand = (a,b)=> Math.floor(Math.random()*(b-a+1))+a;
+const shuffle = arr => arr.sort(()=>Math.random()-0.5);
+const sum = arr => arr.reduce((x,y)=>x+y,0);
+const mean = arr => sum(arr)/arr.length;
+const round1 = x => Number((Math.round(x*10)/10).toFixed(ROUND_TO));
+function makeChoices(correct, poolSteps=[1,2,3]){
+  const s = new Set([correct]);
+  const c = Number(correct);
+  poolSteps.forEach(d=>{
+    s.add(round1(c+d));
+    s.add(round1(c-d));
+  });
+  const opts = Array.from(s).slice(0,3);
+  return shuffle(opts.map(String));
+}
+function makeIntChoices(correct, offsets=[1,2,3]){
+  const s = new Set([correct]);
+  offsets.forEach(d=>{ s.add(correct+d); s.add(correct-d); });
+  const opts = Array.from(s).filter(x=>x>0).slice(0,3);
+  return shuffle(opts.map(String));
+}
+function renderTable(headers, rows){
+  let html = '<table><thead><tr>';
+  headers.forEach(h=> html += `<th>${h}</th>`);
+  html += '</tr></thead><tbody>';
+  rows.forEach(r=>{
+    html += '<tr>'+r.map(c=>`<td>${c}</td>`).join('')+'</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+/* ========== مولدات الأسئلة ========== */
+/* النوع A: متوسط مجموعة أعداد بسيطة (4–6 أعداد) */
+function qMeanBasic(){
+  const n = rand(4,6);
+  const arr = Array.from({length:n},()=>rand(5,30));
+  const m = round1(mean(arr));
+  const text = `أوجدي المتوسط الحسابي للمجموعة: [ ${arr.join(' ، ')} ]`;
+  const options = makeChoices(m);
+  return {text, options, correct:String(m)};
+}
+
+/* النوع B: تحديد القيمة المتطرفة */
+function qOutlier(){
+  const base = rand(8,18);
+  const arr = [base-1, base, base+1, base+2];
+  const out = rand(30,45);
+  arr.push(out);
+  shuffle(arr);
+  const text = `أيُّ القيم التالية تُعدُّ قيمةً مُتطرِّفة في المجموعة: [ ${arr.join(' ، ')} ] ؟`;
+  const options = shuffle(arr.slice(0,3).map(String)); // ثلاثة اختيارات من القيم (تضمن وجود المتطرفة غالبًا)
+  if(!options.includes(String(out))){
+    options[rand(0,options.length-1)] = String(out);
+  }
+  return {text, options, correct:String(out)};
+}
+
+/* النوع C: متوسط بعد إزالة المتطرفة */
+function qMeanWithoutOutlier(){
+  const base = rand(8,18);
+  const arr = [base-1, base, base, base+1];
+  const out = rand(35,45);
+  arr.push(out);
+  const m = round1(mean(arr.filter(x=>x!==out)));
+  const text = `أُزيحت القيمة المتطرّفة من المجموعة [ ${arr.join(' ، ')} ]. ما المتوسط الحسابي الجديد؟`;
+  const options = makeChoices(m);
+  return {text, options, correct:String(m)};
+}
+
+/* النوع D: مسألة أعمار (نصية) */
+function qAges(){
+  const ages = Array.from({length:5},()=>rand(7,15));
+  const m = round1(mean(ages));
+  const text = `أعمار خمسة طلاب هي: ${ages.join('، ')} سنة. ما متوسط أعمارهم؟`;
+  const options = makeChoices(m);
+  return {text, options, correct:String(m)};
+}
+
+/* النوع E: متوسط من جدول تكراري (موزون) */
+function qFrequency(){
+  // نولّد 3–4 قيم مع تكرارات
+  const k = rand(3,4);
+  const values = Array.from({length:k},()=>rand(5,12));
+  const freqs  = Array.from({length:k},()=>rand(1,4));
+  const rows = values.map((v,i)=>[v, freqs[i]]);
+  const weighted = round1( sum(values.map((v,i)=> v*freqs[i])) / sum(freqs) );
+  const text = `أوجدي المتوسط الحسابي من الجدول التكراري الآتي (القيمة × التكرار):`;
+  const tableHTML = renderTable(['القيمة','التكرار'], rows);
+  const options = makeChoices(weighted,[0.5,1,1.5,2]);
+  return {text, options, correct:String(weighted), extra:tableHTML};
+}
+
+/* النوع F: أكمل قيمة ناقصة من المتوسّط */
+function qMissingFromMean(){
+  const a = rand(6,12), b = rand(8,14), c = rand(9,15), d = rand(10,16);
+  const targetMean = rand(10,14);
+  // (a+b+c+x)/4 = targetMean => x = 4*targetMean - (a+b+c)
+  const x = 4*targetMean - (a+b+c);
+  // ضمن حد معقول:
+  const text = `إذا كان متوسط الأعداد (${a} ، ${b} ، ${c} ، س) يساوي ${targetMean}، فما قيمة س؟`;
+  const options = makeIntChoices(x,[1,2,3,4]);
+  return {text, options, correct:String(x)};
+}
+
+/* النوع G: قرّبي المتوسّط لأقرب عدد صحيح */
+function qRoundMean(){
+  const n = 6;
+  const arr = Array.from({length:n},()=>rand(10,35));
+  const m = Math.round(mean(arr));
+  const text = `قرّبي المتوسط الحسابي للمجموعة [ ${arr.join(' ، ')} ] لأقرب عدد صحيح.`;
+  const options = makeIntChoices(m,[1,2,3]);
+  return {text, options, correct:String(m)};
+}
+
+/* ========== بناء بنك أسئلة 30 سؤال (سهل → أصعب) ========== */
+const BANK = [];
+// تمهيدي سهل
+for(let i=0;i<6;i++) BANK.push(qMeanBasic());
+// تحديد المتطرفة ومتوسط بدونها
+for(let i=0;i<5;i++) BANK.push(qOutlier());
+for(let i=0;i<5;i++) BANK.push(qMeanWithoutOutlier());
+// نصية أعمار
+for(let i=0;i<4;i++) BANK.push(qAges());
+// جداول تكرارية (أصعب قليلاً)
+for(let i=0;i<5;i++) BANK.push(qFrequency());
+// قيمة مفقودة من متوسط
+for(let i=0;i<3;i++) BANK.push(qMissingFromMean());
+// تقريب متوسط
+for(let i=0;i<2;i++) BANK.push(qRoundMean());
+
+// لو زاد/نقص نضبط للطول المطلوب
+while(BANK.length>TOTAL_QUESTIONS) BANK.pop();
+while(BANK.length<TOTAL_QUESTIONS) BANK.push(qMeanBasic());
+
+/* ========== محرك اللعبة ========== */
+let idx = 0, score = 0, timeLeft = TIME_LIMIT, timer = null;
+
+function startTimer(){
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--; timeEl.textContent = timeLeft;
+    if(timeLeft<=0){ fail('انتهى الوقت!'); }
+  },1000);
+}
+
+function render(){
+  if(idx>=BANK.length){
+    clearInterval(timer);
+    alert('أحسنت! أنهيت جميع الأسئلة 👏');
+    window.location.href = 'index.html';
+    return;
+  }
+  const visible = `${idx+1} / ${BANK.length}`;
+  qNoEl.textContent = visible;
+
+  const q = BANK[idx];
+  qbar.textContent = q.text;
+  extraBox.innerHTML = q.extra || '';
+  answersBox.innerHTML = '';
+  q.options.forEach(opt=>{
+    const b = document.createElement('button');
+    b.textContent = opt;
+    b.onclick = ()=> choose(opt, q.correct);
+    answersBox.appendChild(b);
+  });
+}
+
+function choose(sel, correct){
+  if(String(sel) === String(correct)){
+    score++; scoreEl.textContent = score;
+    idx++; render();
+  }else{
+    fail('إجابة غير صحيحة!');
+  }
+}
+
+function fail(msg){
+  clearInterval(timer);
+  alert(msg + ' سنعود الآن إلى الصفحة الرئيسية.');
+  window.location.href = 'index.html';
+}
+
+/* تشغيل */
+timeEl.textContent = TIME_LIMIT;
+startTimer();
+render();
+</script>
+</body>
+</html>
